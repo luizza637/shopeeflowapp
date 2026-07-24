@@ -28,7 +28,7 @@ const ContentSchema = {
     hook: { type: "string", description: "Gancho impactante para os 3 primeiros segundos" },
     script: {
       type: "string",
-      description: "Roteiro completo do vídeo, dividido em cenas curtas, pronto para narração",
+      description: "Roteiro em texto corrido, pronto para ser lido por uma narradora. NÃO inclua rótulos como 'Cena 1:', 'Narração:', 'Gancho:', 'CTA:' nem indicações entre parênteses/colchetes. Apenas as frases faladas, separadas por ponto final.",
     },
     cta: { type: "string", description: "Call-to-action final claro e persuasivo" },
     caption: { type: "string", description: "Legenda pronta para Instagram/TikTok, com emojis" },
