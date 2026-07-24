@@ -14,6 +14,7 @@ import {
   Pencil,
   Loader2,
   Wand2,
+  ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import {
 } from "@/lib/products.functions";
 import { ProductFormDialog } from "@/components/product-form-dialog";
 import { AiContentDialog } from "@/components/ai-content-dialog";
+import { ImageStudioDialog } from "@/components/image-studio-dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/products")({
