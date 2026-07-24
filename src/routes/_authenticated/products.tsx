@@ -182,6 +182,7 @@ function ProductsPage() {
                 if (confirm(`Remover "${p.name}"?`)) delMutation.mutate(p.id);
               }}
               onGenerate={() => setAiProduct(p)}
+              onGenerateImage={() => setImgProduct(p)}
             />
           ))}
         </div>
@@ -197,6 +198,7 @@ function ProductsPage() {
         product={aiProduct}
         onClose={() => setAiProduct(null)}
       />
+      <ImageStudioDialog product={imgProduct} onClose={() => setImgProduct(null)} />
     </div>
   );
 }
