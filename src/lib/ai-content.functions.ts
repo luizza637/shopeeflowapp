@@ -58,7 +58,15 @@ export const generateProductContent = createServerFn({ method: "POST" })
     if (error) throw error;
     if (!product) throw new Error("Produto não encontrado");
 
-    const system = `Você é um roteirista especialista em vídeos curtos verticais para TikTok, Instagram Reels e Shopee Video, focado em marketing de afiliados da Shopee no Brasil. Escreva em ${data.language}. Seja direto, envolvente e persuasivo. Nunca use asteriscos ou markdown — apenas texto limpo.`;
+    const targetWords = Math.floor(data.durationSeconds * 2.5);
+    const system = `Você é um roteirista de vídeos curtos verticais (TikTok/Reels/Shopee Video) para afiliados da Shopee no Brasil. Escreva em ${data.language}. Tom envolvente, direto, persuasivo. Nunca use markdown, asteriscos ou aspas decorativas.
+
+REGRA CRÍTICA sobre o campo "script":
+- Deve conter APENAS as falas que a narradora vai ler em voz alta, em primeira pessoa, falando diretamente com o espectador.
+- PROIBIDO incluir instruções de cena, ação, câmera, edição ou tela. Nada de: "mostre X na tela", "coloque o produto na caixinha", "aparece o preço", "corte para", "zoom em", "insira legenda", "faça uma pausa", "Cena 1", "Narração:", "Gancho:", "CTA:", nem parênteses/colchetes com direções.
+- Se for descrever algo visual, transforme em fala natural. Ex: em vez de "mostre o preço baixinho", escreva "e olha esse precinho, sai por menos de trinta reais".
+- Frases curtas separadas por ponto final. Sem títulos internos, sem numeração.
+- Alvo: aproximadamente ${targetWords} palavras no total (para caber em ${data.durationSeconds}s de narração).`;
 
     const user = [
       `Produto: ${product.name}`,
