@@ -14,6 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_generations: {
+        Row: {
+          caption: string | null
+          created_at: string
+          cta: string | null
+          description: string | null
+          duration_seconds: number | null
+          hashtags: string | null
+          hook: string | null
+          id: string
+          model: string | null
+          product_id: string | null
+          script: string | null
+          title: string | null
+          titles: Json | null
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          cta?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          hashtags?: string | null
+          hook?: string | null
+          id?: string
+          model?: string | null
+          product_id?: string | null
+          script?: string | null
+          title?: string | null
+          titles?: Json | null
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          cta?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          hashtags?: string | null
+          hook?: string | null
+          id?: string
+          model?: string | null
+          product_id?: string | null
+          script?: string | null
+          title?: string | null
+          titles?: Json | null
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          affiliate_url: string | null
+          category: string | null
+          commission_percent: number | null
+          created_at: string
+          discount_percent: number | null
+          id: string
+          image_url: string | null
+          is_favorite: boolean
+          name: string
+          notes: string | null
+          original_price: number | null
+          price: number | null
+          rating: number | null
+          sales_count: number | null
+          shop_name: string | null
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          affiliate_url?: string | null
+          category?: string | null
+          commission_percent?: number | null
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          image_url?: string | null
+          is_favorite?: boolean
+          name: string
+          notes?: string | null
+          original_price?: number | null
+          price?: number | null
+          rating?: number | null
+          sales_count?: number | null
+          shop_name?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          affiliate_url?: string | null
+          category?: string | null
+          commission_percent?: number | null
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          image_url?: string | null
+          is_favorite?: boolean
+          name?: string
+          notes?: string | null
+          original_price?: number | null
+          price?: number | null
+          rating?: number | null
+          sales_count?: number | null
+          shop_name?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
