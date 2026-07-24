@@ -328,7 +328,15 @@ function ProductCard({
             className="flex-1 bg-gradient-primary shadow-glow hover:opacity-90"
           >
             <Wand2 className="mr-2 h-4 w-4" />
-            Gerar com IA
+            Roteiro IA
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={onGenerateImage}
+            title="Estúdio de imagens IA"
+          >
+            <ImageIcon className="h-4 w-4" />
           </Button>
           {product.url && (
             <Button asChild size="icon" variant="outline" title="Abrir na Shopee">
