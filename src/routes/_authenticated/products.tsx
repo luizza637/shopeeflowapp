@@ -14,6 +14,7 @@ import {
   Pencil,
   Loader2,
   Wand2,
+  ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import {
 } from "@/lib/products.functions";
 import { ProductFormDialog } from "@/components/product-form-dialog";
 import { AiContentDialog } from "@/components/ai-content-dialog";
+import { ImageStudioDialog } from "@/components/image-studio-dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/products")({
@@ -58,6 +60,7 @@ function ProductsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [aiProduct, setAiProduct] = useState<any | null>(null);
+  const [imgProduct, setImgProduct] = useState<any | null>(null);
 
   const list = useServerFn(listProducts);
   const toggle = useServerFn(toggleFavorite);
@@ -179,6 +182,7 @@ function ProductsPage() {
                 if (confirm(`Remover "${p.name}"?`)) delMutation.mutate(p.id);
               }}
               onGenerate={() => setAiProduct(p)}
+              onGenerateImage={() => setImgProduct(p)}
             />
           ))}
         </div>
@@ -194,6 +198,7 @@ function ProductsPage() {
         product={aiProduct}
         onClose={() => setAiProduct(null)}
       />
+      <ImageStudioDialog product={imgProduct} onClose={() => setImgProduct(null)} />
     </div>
   );
 }
@@ -231,12 +236,14 @@ function ProductCard({
   onEdit,
   onDelete,
   onGenerate,
+  onGenerateImage,
 }: {
   product: any;
   onToggleFavorite: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onGenerate: () => void;
+  onGenerateImage: () => void;
 }) {
   const price = product.price != null ? `R$ ${Number(product.price).toFixed(2)}` : null;
   const original =
@@ -321,7 +328,15 @@ function ProductCard({
             className="flex-1 bg-gradient-primary shadow-glow hover:opacity-90"
           >
             <Wand2 className="mr-2 h-4 w-4" />
-            Gerar com IA
+            Roteiro IA
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={onGenerateImage}
+            title="Estúdio de imagens IA"
+          >
+            <ImageIcon className="h-4 w-4" />
           </Button>
           {product.url && (
             <Button asChild size="icon" variant="outline" title="Abrir na Shopee">
