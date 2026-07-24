@@ -60,6 +60,7 @@ function ProductsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [aiProduct, setAiProduct] = useState<any | null>(null);
+  const [imgProduct, setImgProduct] = useState<any | null>(null);
 
   const list = useServerFn(listProducts);
   const toggle = useServerFn(toggleFavorite);
