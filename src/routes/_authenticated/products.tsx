@@ -236,12 +236,14 @@ function ProductCard({
   onEdit,
   onDelete,
   onGenerate,
+  onGenerateImage,
 }: {
   product: any;
   onToggleFavorite: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onGenerate: () => void;
+  onGenerateImage: () => void;
 }) {
   const price = product.price != null ? `R$ ${Number(product.price).toFixed(2)}` : null;
   const original =
