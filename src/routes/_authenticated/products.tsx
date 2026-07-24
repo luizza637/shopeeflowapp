@@ -15,6 +15,7 @@ import {
   Loader2,
   Wand2,
   ImageIcon,
+  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import {
 import { ProductFormDialog } from "@/components/product-form-dialog";
 import { AiContentDialog } from "@/components/ai-content-dialog";
 import { ImageStudioDialog } from "@/components/image-studio-dialog";
+import { VideoStudioDialog } from "@/components/video-studio-dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/products")({
@@ -61,6 +63,7 @@ function ProductsPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [aiProduct, setAiProduct] = useState<any | null>(null);
   const [imgProduct, setImgProduct] = useState<any | null>(null);
+  const [videoProduct, setVideoProduct] = useState<any | null>(null);
 
   const list = useServerFn(listProducts);
   const toggle = useServerFn(toggleFavorite);
@@ -183,7 +186,9 @@ function ProductsPage() {
               }}
               onGenerate={() => setAiProduct(p)}
               onGenerateImage={() => setImgProduct(p)}
+              onGenerateVideo={() => setVideoProduct(p)}
             />
+
           ))}
         </div>
       )}
@@ -199,6 +204,7 @@ function ProductsPage() {
         onClose={() => setAiProduct(null)}
       />
       <ImageStudioDialog product={imgProduct} onClose={() => setImgProduct(null)} />
+      <VideoStudioDialog product={videoProduct} onClose={() => setVideoProduct(null)} />
     </div>
   );
 }
@@ -237,6 +243,7 @@ function ProductCard({
   onDelete,
   onGenerate,
   onGenerateImage,
+  onGenerateVideo,
 }: {
   product: any;
   onToggleFavorite: () => void;
@@ -244,6 +251,7 @@ function ProductCard({
   onDelete: () => void;
   onGenerate: () => void;
   onGenerateImage: () => void;
+  onGenerateVideo: () => void;
 }) {
   const price = product.price != null ? `R$ ${Number(product.price).toFixed(2)}` : null;
   const original =
@@ -324,11 +332,19 @@ function ProductCard({
         <div className="mt-4 flex flex-1 items-end gap-2">
           <Button
             size="sm"
-            onClick={onGenerate}
+            onClick={onGenerateVideo}
             className="flex-1 bg-gradient-primary shadow-glow hover:opacity-90"
           >
-            <Wand2 className="mr-2 h-4 w-4" />
-            Roteiro IA
+            <Video className="mr-2 h-4 w-4" />
+            Vídeo IA
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={onGenerate}
+            title="Roteiro / legendas / hashtags"
+          >
+            <Wand2 className="h-4 w-4" />
           </Button>
           <Button
             size="icon"
