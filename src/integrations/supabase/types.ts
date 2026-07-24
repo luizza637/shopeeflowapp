@@ -166,6 +166,81 @@ export type Database = {
         }
         Relationships: []
       }
+      videos: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          generation_id: string | null
+          height: number | null
+          id: string
+          mime_type: string | null
+          narration_path: string | null
+          product_id: string | null
+          size_bytes: number | null
+          status: string
+          storage_path: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          url: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          generation_id?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          narration_path?: string | null
+          product_id?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          generation_id?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          narration_path?: string | null
+          product_id?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

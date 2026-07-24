@@ -1,15 +1,253 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Video } from "lucide-react";
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Video, Trash2, Download, Loader2, Sparkles, Play } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { listVideos, deleteVideo } from "@/lib/videos.functions";
+import { listProducts } from "@/lib/products.functions";
+import { VideoStudioDialog } from "@/components/video-studio-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/videos")({
-  head: () => ({ meta: [{ title: "Vídeos — ShopeeFlow" }] }),
-  component: () => (
-    <PlaceholderPage
-      icon={Video}
-      title="Vídeos"
-      description="Editor de vídeo com zoom automático, transições, música, legendas sincronizadas e narração por IA. Chega na Fase 4."
-      phase="Fase 4"
-    />
-  ),
+  head: () => ({
+    meta: [
+      { title: "Vídeos — ShopeeFlow" },
+      {
+        name: "description",
+        content:
+          "Renderize vídeos verticais com narração IA, legendas sincronizadas e capa animada.",
+      },
+    ],
+  }),
+  component: VideosPage,
 });
+
+function VideosPage() {
+  const list = useServerFn(listVideos);
+  const listProds = useServerFn(listProducts);
+  const del = useServerFn(deleteVideo);
+  const qc = useQueryClient();
+  const [studioProduct, setStudioProduct] = useState<any | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+
+  const { data: videos = [], isLoading } = useQuery({
+    queryKey: ["videos"],
+    queryFn: () => list(),
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["products", "all"],
+    queryFn: () =>
+      listProds({ data: { search: "", favoritesOnly: false, sort: "recent" } }),
+  });
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Vídeo removido");
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+  });
+
+  const startStudio = () => {
+    if (!selectedProductId) {
+      toast.error("Escolha um produto");
+      return;
+    }
+    const p = products.find((x: any) => x.id === selectedProductId);
+    if (!p) return;
+    setStudioProduct(p);
+    setPickerOpen(false);
+  };
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-6">
+      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
+            Vídeos
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Vertical 9:16 com zoom automático, legendas sincronizadas, narração IA
+            e metadados removidos.
+          </p>
+        </div>
+        <Button
+          onClick={() => setPickerOpen(true)}
+          className="bg-gradient-primary shadow-glow hover:opacity-90"
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Novo vídeo com IA
+        </Button>
+      </header>
+
+      {pickerOpen && (
+        <div className="rounded-2xl border border-border bg-surface/60 p-4 backdrop-blur-sm">
+          <p className="mb-3 text-sm font-medium">Escolha um produto</p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Selecione um produto" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={startStudio}
+              className="bg-gradient-primary shadow-glow hover:opacity-90"
+            >
+              Abrir estúdio
+            </Button>
+            <Button variant="outline" onClick={() => setPickerOpen(false)}>
+              Cancelar
+            </Button>
+          </div>
+          {products.length === 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Você ainda não tem produtos. Cadastre um em <b>Produtos</b> primeiro.
+            </p>
+          )}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-[9/16] animate-pulse rounded-2xl border border-border bg-surface/40"
+            />
+          ))}
+        </div>
+      ) : videos.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-surface/30 p-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Video className="h-7 w-7" />
+          </div>
+          <h2 className="font-display text-xl font-semibold">
+            Nenhum vídeo ainda
+          </h2>
+          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+            Escolha um produto e gere o primeiro vídeo com narração e legendas
+            automáticas.
+          </p>
+          <Button
+            onClick={() => setPickerOpen(true)}
+            className="mt-6 bg-gradient-primary shadow-glow hover:opacity-90"
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Novo vídeo com IA
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {videos.map((v: any) => (
+            <VideoCard
+              key={v.id}
+              video={v}
+              onDelete={() => {
+                if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <VideoStudioDialog
+        product={studioProduct}
+        onClose={() => setStudioProduct(null)}
+      />
+    </div>
+  );
+}
+
+function VideoCard({
+  video,
+  onDelete,
+}: {
+  video: any;
+  onDelete: () => void;
+}) {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div className="group overflow-hidden rounded-2xl border border-border bg-surface/60 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-elevated">
+      <div className="relative aspect-[9/16] bg-black">
+        {playing ? (
+          <video
+            src={video.url}
+            controls
+            autoPlay
+            playsInline
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          <>
+            {video.thumbnail_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={video.thumbnail_url}
+                alt={video.title ?? "Vídeo"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                <Video className="h-10 w-10 opacity-40" />
+              </div>
+            )}
+            <button
+              onClick={() => setPlaying(true)}
+              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100"
+              aria-label="Reproduzir"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-primary shadow-glow">
+                <Play className="h-7 w-7 translate-x-0.5 text-primary-foreground" />
+              </div>
+            </button>
+          </>
+        )}
+      </div>
+      <div className="space-y-2 p-3">
+        <p className="line-clamp-2 text-sm font-medium">
+          {video.title ?? video.products?.name ?? "Sem título"}
+        </p>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{video.duration_seconds ? `${video.duration_seconds}s` : ""}</span>
+          <div className="flex gap-1">
+            <a
+              href={video.url}
+              download
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground"
+              title="Baixar"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </a>
+            <button
+              onClick={onDelete}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-destructive"
+              title="Remover"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export { Loader2 };
