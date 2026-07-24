@@ -126,16 +126,54 @@ export function VideoStudioDialog({
     }
   };
 
+  const cleanForNarration = (raw: string) => {
+    return raw
+      // remove bracketed/parenthetical stage directions: [pausa], (sorrindo), {música}
+      .replace(/[\[\(\{][^\]\)\}]*[\]\)\}]/g, " ")
+      // remove leading labels at start of a line: "Cena 1:", "Cena 1 -", "Narração:", "Gancho:", "CTA:", "Título:", "Legenda:", "Voz:"
+      .replace(/^\s*(cena|narra[çc][ãa]o|narrador|gancho|cta|t[íi]tulo|legenda|voz|hook|scene|caption)\s*\d*\s*[:\-–—]\s*/gim, "")
+      // inline "Cena N:" mid-text
+      .replace(/\b(cena|narra[çc][ãa]o|gancho|cta|hook|scene)\s*\d+\s*[:\-–—]\s*/gi, "")
+      // strip markdown/asterisks/quotes
+      .replace(/[*_`"“”]/g, "")
+      // collapse whitespace
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
   const generateVoice = async () => {
-    const text = [title, script, cta].filter(Boolean).join(". ");
-    if (!text.trim()) {
+    const combined = [title, script, cta].filter(Boolean).join(". ");
+    const cleaned = cleanForNarration(combined);
+    if (!cleaned) {
       toast.error("Escreva ou gere um roteiro primeiro");
       return;
+    }
+    // Fit to target duration: ~2.6 palavras/segundo em pt-BR a velocidade 1.0
+    const WPS = 2.6;
+    const targetWords = Math.floor(duration * WPS);
+    const words = cleaned.split(/\s+/);
+    let finalText = cleaned;
+    let speed = 1;
+    if (words.length > targetWords) {
+      const ratio = words.length / targetWords;
+      if (ratio <= 1.5) {
+        // acelera um pouco a fala
+        speed = Math.min(1.5, ratio);
+      } else {
+        // trunca preservando fim (CTA) — mantém início e recorta meio
+        const keepStart = Math.floor(targetWords * 0.65);
+        const keepEnd = targetWords - keepStart;
+        finalText = [
+          ...words.slice(0, keepStart),
+          ...words.slice(words.length - keepEnd),
+        ].join(" ");
+        speed = 1.15;
+      }
     }
     setTtsLoading(true);
     try {
       const { base64, mime } = await tts({
-        data: { text: text.slice(0, 3800), voice, format: "mp3" },
+        data: { text: finalText.slice(0, 3800), voice, format: "mp3", speed },
       });
       const bin = atob(base64);
       const bytes = new Uint8Array(bin.length);
