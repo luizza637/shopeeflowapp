@@ -386,6 +386,14 @@ export async function composeVideo(
   startAudio();
   const t0 = performance.now();
 
+  // Canvas pequeno só para o preview ao vivo — exportar o quadro em 1080x1920
+  // a cada 250ms era pesado e engasgava a animação.
+  const previewCanvas = document.createElement("canvas");
+  previewCanvas.width = 270;
+  previewCanvas.height = 480;
+  const previewCtx = previewCanvas.getContext("2d")!;
+  let lastPreview = 0;
+
   await new Promise<void>((resolve) => {
     let raf = 0;
     const step = () => {
@@ -393,11 +401,14 @@ export async function composeVideo(
       const t = Math.min(elapsed, totalDuration);
       drawFrame(t);
       opts.onProgress?.(t, totalDuration);
-      if (opts.onFrame && Math.floor(elapsed * 4) !== Math.floor((elapsed - 1 / FPS) * 4)) {
+      if (opts.onFrame && elapsed - lastPreview >= 0.6) {
+        lastPreview = elapsed;
         try {
-          opts.onFrame(canvas.toDataURL("image/jpeg", 0.6));
+          previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+          opts.onFrame(previewCanvas.toDataURL("image/jpeg", 0.6));
         } catch {}
       }
+
       if (elapsed >= totalDuration) {
         cancelAnimationFrame(raf);
         resolve();
