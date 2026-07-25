@@ -256,6 +256,36 @@ export type Database = {
           },
         ]
       }
+      storefront_views: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          profile_id: string
+          referrer: string | null
+          slug: string
+          visitor_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          id?: string
+          profile_id: string
+          referrer?: string | null
+          slug: string
+          visitor_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          profile_id?: string
+          referrer?: string | null
+          slug?: string
+          visitor_hash?: string | null
+        }
+        Relationships: []
+      }
       videos: {
         Row: {
           created_at: string

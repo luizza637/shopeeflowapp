@@ -10,6 +10,8 @@ import {
   Loader2,
   Store,
   ShoppingBag,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,9 @@ import {
   getMyStorefront,
   updateStorefront,
   setProductPublic,
+  getStorefrontStats,
 } from "@/lib/storefront.functions";
+import { generateCta } from "@/lib/product-cta";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
@@ -63,11 +67,18 @@ function StorefrontAdmin() {
   const load = useServerFn(getMyStorefront);
   const save = useServerFn(updateStorefront);
   const togglePublic = useServerFn(setProductPublic);
+  const loadStats = useServerFn(getStorefrontStats);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["storefront"],
     queryFn: () => load({}),
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ["storefront-stats"],
+    queryFn: () => loadStats({}),
+    refetchInterval: 60_000,
   });
 
   const [slug, setSlug] = useState("");
@@ -128,6 +139,46 @@ function StorefrontAdmin() {
           as imagens e compram pelo seu link de afiliada.
         </p>
       </header>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        <StatCard
+          icon={<Eye className="h-4 w-4" />}
+          label="Visitas hoje"
+          value={stats?.today ?? 0}
+          highlight
+        />
+        <StatCard
+          icon={<Users className="h-4 w-4" />}
+          label="Pessoas diferentes hoje"
+          value={stats?.todayVisitors ?? 0}
+        />
+        <StatCard
+          icon={<TrendingUp className="h-4 w-4" />}
+          label="Últimos 7 dias"
+          value={stats?.last7 ?? 0}
+        />
+      </section>
+
+      {!!stats?.series?.length && (
+        <section className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">
+            Visitas por dia (últimos 30 dias)
+          </h2>
+          <div className="flex h-28 items-end gap-1">
+            {stats.series.map((d: any) => {
+              const max = Math.max(...stats.series.map((x: any) => x.views), 1);
+              return (
+                <div
+                  key={d.day}
+                  title={`${d.day}: ${d.views} visitas`}
+                  className="flex-1 rounded-t bg-primary/70 transition hover:bg-primary"
+                  style={{ height: `${Math.max(6, (d.views / max) * 100)}%` }}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -256,7 +307,15 @@ function StorefrontAdmin() {
                   )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-between">
-                  <p className="line-clamp-2 text-sm font-medium">{p.name}</p>
+                  <div>
+                    <p className="line-clamp-2 text-sm font-medium">{p.name}</p>
+                    <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-primary">
+                      {generateCta(p)}
+                    </p>
+                    {p.category && (
+                      <span className="text-[11px] text-muted-foreground">{p.category}</span>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between gap-2">
                     {p.price != null ? (
                       <span className="text-sm font-bold text-primary">
@@ -290,6 +349,42 @@ function StorefrontAdmin() {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border p-4",
+        highlight
+          ? "border-primary/50 bg-primary/10"
+          : "border-border bg-card",
+      )}
+    >
+      <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        {icon}
+        {label}
+      </span>
+      <p
+        className={cn(
+          "mt-2 text-3xl font-bold tabular-nums",
+          highlight && "text-primary",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }
