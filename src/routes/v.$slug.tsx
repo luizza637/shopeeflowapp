@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X } from "lucide-react";
+
+const SHOPEE_COUPONS_URL =
+  "https://shopee.com.br/m/cupom-de-desconto?mmp_pid=an_18377100565&uls_trackid=564gujhm007g&gad_source=1&gad_campaignid=22786855170&gbraid=0AAAAACoEtRlOl-q6u7FIhC0-EDjjU09pm&gclid=CjwKCAjwvZHTBhAlEiwA1ug5P2Pq3fNqMZt11M6hv369aFi-BelAdFiuDT0ZnNJLhx5W6zod7Zl47BoCoJgQAvD_BwE";
+import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -275,6 +278,15 @@ function StorefrontPage() {
             >
               <Share2 className="h-4 w-4" /> Compartilhar
             </Button>
+            <a
+              href={SHOPEE_COUPONS_URL}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              onClick={() => playClickSound()}
+              className="inline-flex animate-sf-glow items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition hover:scale-105 active:scale-95"
+            >
+              <Ticket className="h-3.5 w-3.5 animate-sf-wiggle" /> Cupons Shopee
+            </a>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
@@ -358,7 +370,7 @@ function StorefrontPage() {
                   : {})}
                 onClick={() => playClickSound()}
                 style={{ animationDelay: `${Math.min(i, 12) * 60}ms` }}
-                className="group flex animate-sf-pop-in gap-3 rounded-2xl border border-border bg-card p-3 transition duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_50px_-24px_var(--primary)] active:scale-[0.98] sm:flex-col"
+                className="group flex animate-sf-pop-in gap-3 hover:animate-none motion-safe:animate-sf-card-pulse rounded-2xl border border-border bg-card p-3 transition duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_50px_-24px_var(--primary)] active:scale-[0.98] sm:flex-col"
               >
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-auto sm:w-full sm:aspect-square">
                   {p.image_url ? (

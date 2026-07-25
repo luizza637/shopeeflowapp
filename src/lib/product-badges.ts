@@ -55,10 +55,18 @@ export function getProductBadges(p: BadgeProduct): ProductBadge[] {
     badges.push({ label: "Menos de R$30", emoji: "💸", tone: "info" });
 
   if (badges.length === 0) badges.push(FILLERS[seed % FILLERS.length]);
-  if (badges.length < 2 && seed % 3 !== 0)
-    badges.push(FILLERS[(seed >> 3) % FILLERS.length]);
+  if (badges.length < 2 && seed % 3 !== 0) {
+    for (let k = 0; k < FILLERS.length; k++) {
+      const cand = FILLERS[((seed >> 3) + k) % FILLERS.length];
+      if (!badges.some((b) => b.label === cand.label)) {
+        badges.push(cand);
+        break;
+      }
+    }
+  }
 
-  return badges.slice(0, 2);
+  const seen = new Set<string>();
+  return badges.filter((b) => !seen.has(b.label) && seen.add(b.label)).slice(0, 2);
 }
 
 export const BADGE_TONE_CLASS: Record<BadgeTone, string> = {

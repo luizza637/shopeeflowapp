@@ -279,3 +279,9 @@
   background-size: 60px 60px;
   animation: sf-grid-pan 12s linear infinite;
 }
+
+@keyframes sf-card-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-primary) 0%, transparent); }
+  50% { transform: scale(1.015); box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 12%, transparent); }
+}
+@utility animate-sf-card-pulse { animation: sf-card-pulse 3.6s ease-in-out infinite; }
