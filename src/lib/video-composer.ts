@@ -6,6 +6,8 @@
 
 export type ComposeOptions = {
   imageUrl: string | null;
+  /** Cenas extras (ex.: apresentador IA). Cada uma vira um corte no vídeo. */
+  sceneImageUrls?: string[];
   captionsText: string; // narration/script text used to derive captions
   narrationUrl?: string | null; // blob or data URL
   musicUrl?: string | null; // blob or data URL, optional
@@ -16,6 +18,7 @@ export type ComposeOptions = {
   onProgress?: (t: number, total: number) => void;
   onFrame?: (previewDataUrl: string) => void;
 };
+
 
 export type ComposeResult = {
   blob: Blob;
