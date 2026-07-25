@@ -169,6 +169,8 @@ function StorefrontPage() {
   const { slug } = Route.useParams();
   const visitorHash = useVisitorHash();
   const [category, setCategory] = useState<string>("Todos");
+  const [query, setQuery] = useState("");
+
 
   const list = (products ?? []) as PublicProduct[];
 
