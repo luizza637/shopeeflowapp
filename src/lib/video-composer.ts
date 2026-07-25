@@ -204,7 +204,7 @@ export async function composeVideo(
   };
 
   const FADE = 0.5; // segundos de crossfade entre cenas
-  const sceneLen = scenes.length ? opts.durationSeconds / scenes.length : 0;
+  const sceneLen = scenes.length ? totalDuration / scenes.length : 0;
 
   const drawScene = (index: number, t: number, alpha: number) => {
     const image = scenes[index];
@@ -272,7 +272,7 @@ export async function composeVideo(
     }
 
     // title (top)
-    if (opts.title && t < opts.durationSeconds * 0.35) {
+    if (opts.title && t < totalDuration * 0.35) {
       const alpha = Math.min(1, t * 2);
       ctx.globalAlpha = alpha;
       ctx.font = "800 78px system-ui, -apple-system, Segoe UI, sans-serif";
@@ -318,8 +318,8 @@ export async function composeVideo(
     }
 
     // CTA pill (last third)
-    if (opts.cta && t > opts.durationSeconds * 0.7) {
-      const alpha = Math.min(1, (t - opts.durationSeconds * 0.7) * 3);
+    if (opts.cta && t > totalDuration * 0.7) {
+      const alpha = Math.min(1, (t - totalDuration * 0.7) * 3);
       ctx.globalAlpha = alpha;
       ctx.font = "800 56px system-ui, -apple-system, Segoe UI, sans-serif";
       const label = opts.cta.slice(0, 40);
@@ -374,15 +374,15 @@ export async function composeVideo(
     let raf = 0;
     const step = () => {
       const elapsed = (performance.now() - t0) / 1000;
-      const t = Math.min(elapsed, opts.durationSeconds);
+      const t = Math.min(elapsed, totalDuration);
       drawFrame(t);
-      opts.onProgress?.(t, opts.durationSeconds);
+      opts.onProgress?.(t, totalDuration);
       if (opts.onFrame && Math.floor(elapsed * 4) !== Math.floor((elapsed - 1 / FPS) * 4)) {
         try {
           opts.onFrame(canvas.toDataURL("image/jpeg", 0.6));
         } catch {}
       }
-      if (elapsed >= opts.durationSeconds) {
+      if (elapsed >= totalDuration) {
         cancelAnimationFrame(raf);
         resolve();
       } else {
@@ -399,14 +399,14 @@ export async function composeVideo(
   const blob = new Blob(chunks, { type: mimeType });
 
   // Thumbnail from last-frame canvas (currently the last rendered CTA frame — grab a mid frame instead)
-  drawFrame(opts.durationSeconds * 0.35);
+  drawFrame(totalDuration * 0.35);
   const thumbDataUrl = canvas.toDataURL("image/jpeg", 0.75);
   const thumbnailBase64 = thumbDataUrl.split(",")[1] ?? "";
 
   return {
     blob,
     mimeType,
-    durationSeconds: opts.durationSeconds,
+    durationSeconds: totalDuration,
     width: WIDTH,
     height: HEIGHT,
     thumbnailBase64,
