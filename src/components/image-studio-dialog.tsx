@@ -175,23 +175,69 @@ export function ImageStudioDialog({
               </button>
               <button
                 onClick={() => setMode("edit")}
-                disabled={!product?.image_url}
                 className={cn(
-                  "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all disabled:opacity-40",
+                  "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
                   mode === "edit"
                     ? "bg-gradient-primary text-primary-foreground shadow-glow"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                Melhorar atual
+                Usar referência
               </button>
             </div>
 
-            {mode === "edit" && !product?.image_url && (
-              <p className="text-xs text-warning">
-                Este produto ainda não tem imagem. Gere uma nova primeiro.
-              </p>
-            )}
+            <div className="space-y-2 rounded-xl border border-border bg-surface/40 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Imagens de referência (o produto real)</Label>
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:border-primary/50">
+                  <Upload className="h-3.5 w-3.5" />
+                  Enviar foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      void addFiles(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {mode === "edit" && product?.image_url && (
+                  <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-primary/40">
+                    <img
+                      src={product.image_url}
+                      alt="Imagem atual do produto"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                {refs.map((r, i) => (
+                  <div
+                    key={i}
+                    className="relative h-16 w-16 overflow-hidden rounded-lg border border-border"
+                  >
+                    <img src={r} alt={`Referência ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setRefs((v) => v.filter((_, j) => j !== i))}
+                      className="absolute right-0.5 top-0.5 rounded-full bg-background/80 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {allRefs().length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Envie fotos do produto real (ou use a imagem atual) para a IA manter o formato e
+                    as cores fiéis.
+                  </p>
+                )}
+              </div>
+            </div>
+
 
             <div className="space-y-2">
               <Label>Prompt</Label>
