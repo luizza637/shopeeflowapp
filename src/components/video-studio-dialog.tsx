@@ -79,6 +79,7 @@ export function VideoStudioDialog({
   const [scenes, setScenes] = useState<PresenterScene[]>([]);
   const [scenesLoading, setScenesLoading] = useState(false);
   const [scenePreviews, setScenePreviews] = useState<Record<string, string>>({});
+  const [presenterGender, setPresenterGender] = useState<PresenterGender>("auto");
   const musicInputRef = useRef<HTMLInputElement>(null);
 
 
