@@ -10,7 +10,6 @@ import {
   Loader2,
   Store,
   ShoppingBag,
-  Eye,
   Users,
   TrendingUp,
 } from "lucide-react";
