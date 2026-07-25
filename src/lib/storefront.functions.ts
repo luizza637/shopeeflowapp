@@ -11,6 +11,22 @@ const SlugSchema = z
   .max(40)
   .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen");
 
+function publicClient() {
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
+  return createClient<Database>(process.env.SUPABASE_URL!, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`)
+          h.delete("Authorization");
+        h.set("apikey", key);
+        return fetch(input, { ...init, headers: h });
+      },
+    },
+  });
+}
+
 export const getMyStorefront = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -24,7 +40,7 @@ export const getMyStorefront = createServerFn({ method: "GET" })
 
     const { data: products, error: pErr } = await supabase
       .from("products")
-      .select("id, name, image_url, price, original_price, discount_percent, affiliate_url, url, shop_name, rating, is_public, sort_order")
+      .select("id, name, image_url, price, original_price, discount_percent, affiliate_url, url, shop_name, rating, sales_count, category, is_public, sort_order")
       .eq("user_id", userId)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
@@ -99,19 +115,7 @@ export const reorderStorefrontProduct = createServerFn({ method: "POST" })
 export const getPublicStorefront = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ slug: z.string().trim().max(60) }).parse(input))
   .handler(async ({ data }) => {
-    const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-    const supabasePublic = createClient<Database>(process.env.SUPABASE_URL!, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: {
-        fetch: (input, init) => {
-          const h = new Headers(init?.headers);
-          if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`)
-            h.delete("Authorization");
-          h.set("apikey", key);
-          return fetch(input, { ...init, headers: h });
-        },
-      },
-    });
+    const supabasePublic = publicClient();
 
     const { data: profile } = await supabasePublic
       .from("profiles")
@@ -124,7 +128,7 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
 
     const { data: products } = await supabasePublic
       .from("products")
-      .select("id, name, image_url, price, original_price, discount_percent, affiliate_url, url, shop_name, rating")
+      .select("id, name, image_url, price, original_price, discount_percent, affiliate_url, url, shop_name, rating, sales_count, category")
       .eq("user_id", profile.id)
       .eq("is_public", true)
       .order("sort_order", { ascending: true })
@@ -133,7 +137,97 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
     return { profile, products: (products ?? []) as PublicProduct[] };
   });
 
+export const trackStorefrontView = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        slug: z.string().trim().max(60),
+        visitorHash: z.string().trim().max(64).optional(),
+        referrer: z.string().trim().max(300).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const supabasePublic = publicClient();
+    const { data: profile } = await supabasePublic
+      .from("profiles")
+      .select("id")
+      .eq("slug", data.slug)
+      .eq("storefront_published", true)
+      .maybeSingle();
+    if (!profile) return { ok: false, views: 0 };
+
+    await supabasePublic.from("storefront_views").insert({
+      profile_id: profile.id,
+      slug: data.slug,
+      visitor_hash: data.visitorHash ?? null,
+      referrer: data.referrer ?? null,
+    });
+
+    return { ok: true };
+  });
+
+export const getStorefrontViewsPublic = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => z.object({ slug: z.string().trim().max(60) }).parse(input))
+  .handler(async ({ data }) => {
+    const supabasePublic = publicClient();
+    const { data: profile } = await supabasePublic
+      .from("profiles")
+      .select("id")
+      .eq("slug", data.slug)
+      .eq("storefront_published", true)
+      .maybeSingle();
+    if (!profile) return { today: 0 };
+    return { today: 0, profileId: profile.id };
+  });
+
+export const getStorefrontStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const since = new Date();
+    since.setDate(since.getDate() - 29);
+    const sinceDay = since.toISOString().slice(0, 10);
+
+    const { data: rows, error } = await supabase
+      .from("storefront_views")
+      .select("day, visitor_hash")
+      .eq("profile_id", userId)
+      .gte("day", sinceDay);
+    if (error) throw error;
+
+    const byDay = new Map<string, { views: number; visitors: Set<string> }>();
+    for (const r of rows ?? []) {
+      const key = r.day as string;
+      if (!byDay.has(key)) byDay.set(key, { views: 0, visitors: new Set() });
+      const e = byDay.get(key)!;
+      e.views += 1;
+      e.visitors.add((r.visitor_hash as string | null) ?? Math.random().toString());
+    }
+
+    const series = Array.from(byDay.entries())
+      .map(([day, v]) => ({ day, views: v.views, visitors: v.visitors.size }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const today = series.find((s) => s.day === todayKey);
+    const total = series.reduce((acc, s) => acc + s.views, 0);
+    const last7 = series
+      .slice(-7)
+      .reduce((acc, s) => acc + s.views, 0);
+
+    return {
+      today: today?.views ?? 0,
+      todayVisitors: today?.visitors ?? 0,
+      last7,
+      total,
+      series,
+    };
+  });
+
 export type PublicProduct = {
+  sales_count?: number | null;
+  category?: string | null;
   id: string;
   name: string;
   image_url: string | null;
