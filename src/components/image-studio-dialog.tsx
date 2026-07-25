@@ -275,7 +275,7 @@ export function ImageStudioDialog({
 
             <Button
               onClick={run}
-              disabled={isStreaming || (mode === "edit" && !product?.image_url)}
+              disabled={isStreaming}
               className="w-full bg-gradient-primary shadow-glow hover:opacity-90"
             >
               {isStreaming ? (
