@@ -130,8 +130,6 @@ export async function composeVideo(
   );
   const scenes = loaded.length ? loaded : [];
   
-  const captions = splitCaptions(opts.captionsText, opts.durationSeconds);
-
 
   // Audio graph
   const AudioCtx =
@@ -153,6 +151,22 @@ export async function composeVideo(
   try {
     if (opts.musicUrl) musicBuf = await loadAudioBuffer(opts.musicUrl);
   } catch {}
+
+  // A narração manda no tempo: o vídeo nunca corta a fala no meio.
+  const AUDIO_LEAD = 0.05; // atraso do início do áudio agendado
+  const TAIL = 0.7; // respiro no final
+  const totalDuration = narrationBuf
+    ? Math.max(opts.durationSeconds, narrationBuf.duration + AUDIO_LEAD + TAIL)
+    : opts.durationSeconds;
+  const narrationSpan = narrationBuf ? narrationBuf.duration : totalDuration;
+
+  // Legendas sincronizadas com a fala real (mesmo texto da narração).
+  const captions = splitCaptions(opts.captionsText, narrationSpan).map((c) => ({
+    ...c,
+    start: c.start + AUDIO_LEAD,
+    end: c.end + AUDIO_LEAD,
+  }));
+
 
   const stream = canvas.captureStream(FPS);
   if (dest.stream.getAudioTracks()[0])
