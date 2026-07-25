@@ -210,11 +210,35 @@ export function VideoStudioDialog({
     }
   };
 
+  const makePresenter = async () => {
+    setScenesLoading(true);
+    setScenePreviews({});
+    setScenes([]);
+    try {
+      const total = buildPresenterPrompts(product).length;
+      const done = await generatePresenterScenes(product, {
+        onSceneProgress: (id, dataUrl) =>
+          setScenePreviews((prev) => ({ ...prev, [id]: dataUrl })),
+      });
+      setScenes(done);
+      if (done.length < total) {
+        toast.warning(`${done.length} de ${total} cenas geradas`);
+      } else {
+        toast.success("Apresentador IA pronto — cenas geradas");
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao gerar apresentador");
+    } finally {
+      setScenesLoading(false);
+    }
+  };
+
   const render = async () => {
     if (!script.trim() && !title.trim()) {
       toast.error("Adicione um roteiro ou título");
       return;
     }
+
     setRendering(true);
     setProgress(0);
     setResult(null);
