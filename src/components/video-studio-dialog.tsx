@@ -38,6 +38,7 @@ import {
   generatePresenterScenes,
   buildPresenterPrompts,
   type PresenterScene,
+  type PresenterGender,
 } from "@/lib/presenter-scenes";
 
 
