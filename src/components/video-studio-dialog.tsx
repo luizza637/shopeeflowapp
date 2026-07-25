@@ -224,6 +224,7 @@ export function VideoStudioDialog({
     try {
       const total = buildPresenterPrompts(product).length;
       const done = await generatePresenterScenes(product, {
+        gender: presenterGender,
         onSceneProgress: (id, dataUrl) =>
           setScenePreviews((prev) => ({ ...prev, [id]: dataUrl })),
       });
