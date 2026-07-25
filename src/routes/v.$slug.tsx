@@ -288,6 +288,33 @@ function StorefrontPage() {
 
         <Ticker />
 
+        <div className="relative mt-6 animate-sf-pop-in">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar produto ou categoria..."
+            aria-label="Buscar produtos"
+            className="w-full rounded-full border border-border bg-card/80 py-2.5 pl-10 pr-10 text-sm outline-none backdrop-blur transition focus:border-primary/60 focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]"
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="Limpar busca"
+              onClick={() => {
+                playClickSound();
+                setQuery("");
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition hover:scale-110 hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+
+
         {categories.length > 1 && (
           <nav className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((c, i) => (
