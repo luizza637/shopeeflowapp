@@ -5,6 +5,7 @@ import {
   Video,
   CalendarClock,
   Library,
+  Store,
   Settings,
   ShoppingBag as Logo,
   LogOut,
@@ -22,6 +23,7 @@ const nav = [
   { to: "/products", label: "Produtos", icon: ShoppingBag },
   { to: "/videos", label: "Vídeos", icon: Video },
   { to: "/schedule", label: "Agendamento", icon: CalendarClock },
+  { to: "/storefront", label: "Vitrine", icon: Store },
   { to: "/library", label: "Biblioteca", icon: Library },
   { to: "/settings", label: "Configurações", icon: Settings },
 ] as const;

@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VSlugRouteImport } from './routes/v.$slug'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as AuthenticatedVideosRouteImport } from './routes/_authenticated/videos'
+import { Route as AuthenticatedStorefrontRouteImport } from './routes/_authenticated/storefront'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated/products'
@@ -35,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VSlugRoute = VSlugRouteImport.update({
+  id: '/v/$slug',
+  path: '/v/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   id: '/api/generate-image',
   path: '/api/generate-image',
@@ -43,6 +50,11 @@ const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
 const AuthenticatedVideosRoute = AuthenticatedVideosRouteImport.update({
   id: '/videos',
   path: '/videos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStorefrontRoute = AuthenticatedStorefrontRouteImport.update({
+  id: '/storefront',
+  path: '/storefront',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -85,8 +97,10 @@ export interface FileRoutesByFullPath {
   '/products': typeof AuthenticatedProductsRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/storefront': typeof AuthenticatedStorefrontRoute
   '/videos': typeof AuthenticatedVideosRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/v/$slug': typeof VSlugRoute
   '/api/public/hooks/process-scheduled-posts': typeof ApiPublicHooksProcessScheduledPostsRoute
 }
 export interface FileRoutesByTo {
@@ -97,8 +111,10 @@ export interface FileRoutesByTo {
   '/products': typeof AuthenticatedProductsRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/storefront': typeof AuthenticatedStorefrontRoute
   '/videos': typeof AuthenticatedVideosRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/v/$slug': typeof VSlugRoute
   '/api/public/hooks/process-scheduled-posts': typeof ApiPublicHooksProcessScheduledPostsRoute
 }
 export interface FileRoutesById {
@@ -111,8 +127,10 @@ export interface FileRoutesById {
   '/_authenticated/products': typeof AuthenticatedProductsRoute
   '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/storefront': typeof AuthenticatedStorefrontRoute
   '/_authenticated/videos': typeof AuthenticatedVideosRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/v/$slug': typeof VSlugRoute
   '/api/public/hooks/process-scheduled-posts': typeof ApiPublicHooksProcessScheduledPostsRoute
 }
 export interface FileRouteTypes {
@@ -125,8 +143,10 @@ export interface FileRouteTypes {
     | '/products'
     | '/schedule'
     | '/settings'
+    | '/storefront'
     | '/videos'
     | '/api/generate-image'
+    | '/v/$slug'
     | '/api/public/hooks/process-scheduled-posts'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -137,8 +157,10 @@ export interface FileRouteTypes {
     | '/products'
     | '/schedule'
     | '/settings'
+    | '/storefront'
     | '/videos'
     | '/api/generate-image'
+    | '/v/$slug'
     | '/api/public/hooks/process-scheduled-posts'
   id:
     | '__root__'
@@ -150,8 +172,10 @@ export interface FileRouteTypes {
     | '/_authenticated/products'
     | '/_authenticated/schedule'
     | '/_authenticated/settings'
+    | '/_authenticated/storefront'
     | '/_authenticated/videos'
     | '/api/generate-image'
+    | '/v/$slug'
     | '/api/public/hooks/process-scheduled-posts'
   fileRoutesById: FileRoutesById
 }
@@ -160,6 +184,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
+  VSlugRoute: typeof VSlugRoute
   ApiPublicHooksProcessScheduledPostsRoute: typeof ApiPublicHooksProcessScheduledPostsRoute
 }
 
@@ -186,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v/$slug': {
+      id: '/v/$slug'
+      path: '/v/$slug'
+      fullPath: '/v/$slug'
+      preLoaderRoute: typeof VSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/generate-image': {
       id: '/api/generate-image'
       path: '/api/generate-image'
@@ -198,6 +230,13 @@ declare module '@tanstack/react-router' {
       path: '/videos'
       fullPath: '/videos'
       preLoaderRoute: typeof AuthenticatedVideosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/storefront': {
+      id: '/_authenticated/storefront'
+      path: '/storefront'
+      fullPath: '/storefront'
+      preLoaderRoute: typeof AuthenticatedStorefrontRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -251,6 +290,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
   AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedStorefrontRoute: typeof AuthenticatedStorefrontRoute
   AuthenticatedVideosRoute: typeof AuthenticatedVideosRoute
 }
 
@@ -260,6 +300,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
   AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedStorefrontRoute: AuthenticatedStorefrontRoute,
   AuthenticatedVideosRoute: AuthenticatedVideosRoute,
 }
 
@@ -271,6 +312,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
+  VSlugRoute: VSlugRoute,
   ApiPublicHooksProcessScheduledPostsRoute:
     ApiPublicHooksProcessScheduledPostsRoute,
 }
