@@ -421,6 +421,77 @@ export function VideoStudioDialog({
               />
             </div>
 
+            <div className="space-y-3 rounded-xl border border-border bg-surface/50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <UserRound className="h-4 w-4 text-primary" />
+                    Apresentador IA
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Gera 3 cenas com uma pessoa segurando e mostrando o produto.
+                    O perfil varia automaticamente conforme a categoria.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={makePresenter}
+                  disabled={scenesLoading}
+                >
+                  {scenesLoading ? (
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-3.5 w-3.5" />
+                  )}
+                  {scenes.length ? "Regerar cenas" : "Gerar cenas"}
+                </Button>
+              </div>
+
+              {(scenesLoading || scenes.length > 0) && (
+                <div className="grid grid-cols-3 gap-2">
+                  {buildPresenterPrompts(product).map((p) => {
+                    const src =
+                      scenes.find((s) => s.id === p.id)?.dataUrl ??
+                      scenePreviews[p.id];
+                    const isFinal = scenes.some((s) => s.id === p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className="overflow-hidden rounded-lg border border-border bg-black"
+                      >
+                        <div className="relative aspect-[9/16]">
+                          {src ? (
+                            <img
+                              src={src}
+                              alt={p.label}
+                              className={
+                                isFinal
+                                  ? "h-full w-full object-cover"
+                                  : "h-full w-full object-cover blur-md"
+                              }
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {scenes.length > 0 && (
+                <p className="text-xs text-primary">
+                  {scenes.length} cenas prontas — serão usadas no vídeo com cortes
+                  e transições suaves.
+                </p>
+              )}
+            </div>
+
+
             <div className="grid grid-cols-2 gap-3">
               <Button
                 type="button"
