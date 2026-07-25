@@ -20,12 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Video, Mic, Sparkles, Download, Save } from "lucide-react";
+import {
+  Loader2,
+  Video,
+  Mic,
+  Sparkles,
+  Download,
+  Save,
+  UserRound,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { generateNarration } from "@/lib/tts.functions";
 import { listGenerations, generateProductContent } from "@/lib/ai-content.functions";
 import { saveVideoRecord } from "@/lib/videos.functions";
 import { composeVideo, type ComposeResult } from "@/lib/video-composer";
+import {
+  generatePresenterScenes,
+  buildPresenterPrompts,
+  type PresenterScene,
+} from "@/lib/presenter-scenes";
+
 
 type Voice = "nova" | "alloy" | "echo" | "fable" | "onyx" | "shimmer";
 type Duration = 15 | 30 | 60;
