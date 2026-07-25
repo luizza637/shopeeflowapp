@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
+import { publicClient } from "./storefront.server";
 
 const SlugSchema = z
   .string()
@@ -10,22 +9,6 @@ const SlugSchema = z
   .min(3)
   .max(40)
   .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen");
-
-function publicClient() {
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-  return createClient<Database>(process.env.SUPABASE_URL!, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`)
-          h.delete("Authorization");
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
-}
 
 export const getMyStorefront = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -165,20 +148,6 @@ export const trackStorefrontView = createServerFn({ method: "POST" })
     });
 
     return { ok: true };
-  });
-
-export const getStorefrontViewsPublic = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({ slug: z.string().trim().max(60) }).parse(input))
-  .handler(async ({ data }) => {
-    const supabasePublic = publicClient();
-    const { data: profile } = await supabasePublic
-      .from("profiles")
-      .select("id")
-      .eq("slug", data.slug)
-      .eq("storefront_published", true)
-      .maybeSingle();
-    if (!profile) return { today: 0 };
-    return { today: 0, profileId: profile.id };
   });
 
 export const getStorefrontStats = createServerFn({ method: "GET" })
