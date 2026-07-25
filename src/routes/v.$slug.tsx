@@ -90,36 +90,19 @@ function StorefrontPage() {
   const { slug } = Route.useParams();
   const visitorHash = useVisitorHash();
   const [category, setCategory] = useState<string>("Todos");
-  const [views, setViews] = useState<number | null>(null);
 
   const list = (products ?? []) as PublicProduct[];
 
   useEffect(() => {
     if (!profile || !visitorHash) return;
-    const key = `sf_seen_${slug}_${new Date().toISOString().slice(0, 10)}`;
-    let already = false;
-    try {
-      already = localStorage.getItem(key) === "1";
-    } catch {
-      /* ignore */
-    }
-    // contador local animado (cresce a cada visita registrada)
     trackStorefrontView({
       data: {
         slug,
         visitorHash,
-        referrer: typeof document !== "undefined" ? document.referrer || undefined : undefined,
+        referrer:
+          typeof document !== "undefined" ? document.referrer || undefined : undefined,
       },
-    })
-      .then(() => {
-        try {
-          localStorage.setItem(key, "1");
-        } catch {
-          /* ignore */
-        }
-      })
-      .catch(() => {});
-    setViews(already ? null : null);
+    }).catch(() => {});
   }, [profile, visitorHash, slug]);
 
   const categories = useMemo(() => {
