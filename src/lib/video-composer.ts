@@ -123,7 +123,7 @@ export async function composeVideo(
     (i): i is HTMLImageElement => !!i,
   );
   const scenes = loaded.length ? loaded : [];
-  const img = scenes[0] ?? null;
+  
   const captions = splitCaptions(opts.captionsText, opts.durationSeconds);
 
 
