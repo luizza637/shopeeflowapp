@@ -74,7 +74,11 @@ export function VideoStudioDialog({
   const [result, setResult] = useState<ComposeResult | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [scenes, setScenes] = useState<PresenterScene[]>([]);
+  const [scenesLoading, setScenesLoading] = useState(false);
+  const [scenePreviews, setScenePreviews] = useState<Record<string, string>>({});
   const musicInputRef = useRef<HTMLInputElement>(null);
+
 
   const { data: generations = [] } = useQuery({
     queryKey: ["ai_generations", product?.id],
