@@ -171,7 +171,9 @@ export function VideoStudioDialog({
       toast.error("Escreva ou gere um roteiro primeiro");
       return;
     }
-    // Fit to target duration: ~2.6 palavras/segundo em pt-BR a velocidade 1.0
+    // Fit to target duration: ~2.6 palavras/segundo em pt-BR a velocidade 1.0.
+    // O vídeo se estende um pouco se a fala passar, então aceleramos de leve
+    // e só cortamos texto em casos extremos (nunca no meio de uma frase final).
     const WPS = 2.6;
     const targetWords = Math.floor(duration * WPS);
     const words = cleaned.split(/\s+/);
@@ -179,20 +181,20 @@ export function VideoStudioDialog({
     let speed = 1;
     if (words.length > targetWords) {
       const ratio = words.length / targetWords;
-      if (ratio <= 1.5) {
-        // acelera um pouco a fala
-        speed = Math.min(1.5, ratio);
+      if (ratio <= 1.8) {
+        speed = Math.min(1.25, ratio);
       } else {
-        // trunca preservando fim (CTA) — mantém início e recorta meio
-        const keepStart = Math.floor(targetWords * 0.65);
-        const keepEnd = targetWords - keepStart;
+        const budget = Math.floor(targetWords * 1.4);
+        const keepStart = Math.floor(budget * 0.65);
+        const keepEnd = budget - keepStart;
         finalText = [
           ...words.slice(0, keepStart),
           ...words.slice(words.length - keepEnd),
         ].join(" ");
-        speed = 1.15;
+        speed = 1.25;
       }
     }
+
     setTtsLoading(true);
     try {
       const { base64, mime } = await tts({
