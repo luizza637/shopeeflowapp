@@ -34,7 +34,12 @@ const HEIGHT = 1920;
 const FPS = 30;
 
 function pickMime(): string {
+  // MP4/H.264 primeiro: é o formato que a galeria do celular abre em tela
+  // cheia no formato certo (9:16). WebM só como último recurso.
   const candidates = [
+    'video/mp4;codecs="avc1.4d0028,mp4a.40.2"',
+    'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+    "video/mp4",
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
     "video/webm",
@@ -45,6 +50,7 @@ function pickMime(): string {
   }
   return "video/webm";
 }
+
 
 async function loadImage(url: string | null): Promise<HTMLImageElement | null> {
   if (!url) return null;
