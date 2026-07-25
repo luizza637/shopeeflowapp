@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Sparkles, Loader2, Download, ImagePlus, Wand2 } from "lucide-react";
+import { Sparkles, Loader2, Download, ImagePlus, Wand2, Upload, X } from "lucide-react";
 import { streamImage } from "@/lib/stream-image";
 import { saveGeneratedImage } from "@/lib/images.functions";
 import { cn } from "@/lib/utils";
