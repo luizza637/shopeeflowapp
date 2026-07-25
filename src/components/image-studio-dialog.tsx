@@ -256,6 +256,7 @@ export function ImageStudioDialog({
                   "fundo laranja gradiente",
                   "estilo cinemático",
                   "close-up produto",
+                  "quadrada 1:1",
                   "vertical 9:16",
                   "iluminação suave",
                 ].map((p) => (
