@@ -321,11 +321,13 @@ export function VideoStudioDialog({
 
   const downloadFile = () => {
     if (!videoUrl) return;
+    const ext = result?.mimeType.includes("mp4") ? "mp4" : "webm";
     const a = document.createElement("a");
     a.href = videoUrl;
-    a.download = `${(title || product.name || "video").replace(/[^\w-]+/g, "_")}.webm`;
+    a.download = `${(title || product.name || "video").replace(/[^\w-]+/g, "_")}.${ext}`;
     a.click();
   };
+
 
   const onMusicPick = (file: File | null) => {
     if (musicUrl) URL.revokeObjectURL(musicUrl);
