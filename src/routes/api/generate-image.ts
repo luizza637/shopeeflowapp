@@ -60,11 +60,16 @@ function sseError(message: string) {
   );
 }
 
+/**
+ * Gera com a chave pessoal do usuário.
+ * Retorna `null` quando a cota da chave estourou (429) — nesse caso o chamador
+ * cai automaticamente no saldo de IA do app para não travar o usuário.
+ */
 async function generateWithUserKey(
   apiKey: string,
   prompt: string,
   refs: string[],
-): Promise<Response> {
+): Promise<Response | null> {
   const parts: Array<Record<string, unknown>> = [{ text: prompt }];
   for (const ref of refs) {
     const part = await toInlinePart(ref);
@@ -86,13 +91,15 @@ async function generateWithUserKey(
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     if (res.status === 429) {
-      return sseError("Sua chave do Gemini atingiu o limite de uso. Tente novamente mais tarde.");
+      console.warn("[generate-image] cota da chave pessoal do Gemini esgotada:", text.slice(0, 400));
+      return null; // fallback para o saldo do app
     }
     if (res.status === 400 || res.status === 403) {
       return sseError("Chave do Gemini inválida ou sem acesso ao modelo de imagens.");
     }
     return sseError(`Falha no Gemini (${res.status}): ${text.slice(0, 160)}`);
   }
+
 
   const payload = (await res.json()) as {
     candidates?: Array<{
