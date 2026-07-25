@@ -89,6 +89,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_favorite: boolean
+          is_public: boolean
           name: string
           notes: string | null
           original_price: number | null
@@ -96,6 +97,7 @@ export type Database = {
           rating: number | null
           sales_count: number | null
           shop_name: string | null
+          sort_order: number
           updated_at: string
           url: string | null
           user_id: string
@@ -109,6 +111,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_favorite?: boolean
+          is_public?: boolean
           name: string
           notes?: string | null
           original_price?: number | null
@@ -116,6 +119,7 @@ export type Database = {
           rating?: number | null
           sales_count?: number | null
           shop_name?: string | null
+          sort_order?: number
           updated_at?: string
           url?: string | null
           user_id: string
@@ -129,6 +133,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_favorite?: boolean
+          is_public?: boolean
           name?: string
           notes?: string | null
           original_price?: number | null
@@ -136,6 +141,7 @@ export type Database = {
           rating?: number | null
           sales_count?: number | null
           shop_name?: string | null
+          sort_order?: number
           updated_at?: string
           url?: string | null
           user_id?: string
@@ -148,6 +154,10 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          slug: string | null
+          storefront_bio: string | null
+          storefront_published: boolean
+          storefront_title: string | null
           updated_at: string
         }
         Insert: {
@@ -155,6 +165,10 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          slug?: string | null
+          storefront_bio?: string | null
+          storefront_published?: boolean
+          storefront_title?: string | null
           updated_at?: string
         }
         Update: {
@@ -162,6 +176,10 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          slug?: string | null
+          storefront_bio?: string | null
+          storefront_published?: boolean
+          storefront_title?: string | null
           updated_at?: string
         }
         Relationships: []
