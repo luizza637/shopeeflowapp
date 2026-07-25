@@ -1,17 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Settings as SettingsIcon } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  Settings as SettingsIcon,
+  Trash2,
+} from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  getGeminiKeyStatus,
+  saveGeminiKey,
+  deleteGeminiKey,
+} from "@/lib/ai-keys.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Configurações — ShopeeFlow" }] }),
   component: SettingsPage,
 });
+
 
 function SettingsPage() {
   const [loading, setLoading] = useState(true);
