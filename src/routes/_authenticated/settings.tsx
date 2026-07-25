@@ -113,6 +113,9 @@ function SettingsPage() {
           </form>
         )}
       </div>
+
+      <GeminiKeyCard />
     </div>
+
   );
 }
