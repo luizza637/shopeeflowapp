@@ -199,10 +199,17 @@ function StorefrontPage() {
     return m;
   }, [list]);
 
-  const filtered = useMemo(
-    () => (category === "Todos" ? list : list.filter((p) => p.category === category)),
-    [list, category],
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return list.filter((p) => {
+      if (category !== "Todos" && p.category !== category) return false;
+      if (!q) return true;
+      return [p.name, p.category, p.shop_name]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [list, category, query]);
+
 
   if (!profile) return <Empty title="Vitrine não encontrada" />;
 
