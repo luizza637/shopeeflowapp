@@ -65,6 +65,7 @@ export function VideoStudioDialog({
   const [cta, setCta] = useState("");
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [narrationUrl, setNarrationUrl] = useState<string | null>(null);
+  const [narrationText, setNarrationText] = useState("");
   const [musicUrl, setMusicUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
   const [ttsLoading, setTtsLoading] = useState(false);
@@ -104,6 +105,7 @@ export function VideoStudioDialog({
     if (narrationUrl) URL.revokeObjectURL(narrationUrl);
     if (musicUrl) URL.revokeObjectURL(musicUrl);
     setNarrationUrl(null);
+    setNarrationText("");
     setMusicUrl(null);
     setResult(null);
     setVideoUrl(null);
@@ -169,7 +171,9 @@ export function VideoStudioDialog({
       toast.error("Escreva ou gere um roteiro primeiro");
       return;
     }
-    // Fit to target duration: ~2.6 palavras/segundo em pt-BR a velocidade 1.0
+    // Fit to target duration: ~2.6 palavras/segundo em pt-BR a velocidade 1.0.
+    // O vídeo se estende um pouco se a fala passar, então aceleramos de leve
+    // e só cortamos texto em casos extremos (nunca no meio de uma frase final).
     const WPS = 2.6;
     const targetWords = Math.floor(duration * WPS);
     const words = cleaned.split(/\s+/);
@@ -177,20 +181,20 @@ export function VideoStudioDialog({
     let speed = 1;
     if (words.length > targetWords) {
       const ratio = words.length / targetWords;
-      if (ratio <= 1.5) {
-        // acelera um pouco a fala
-        speed = Math.min(1.5, ratio);
+      if (ratio <= 1.8) {
+        speed = Math.min(1.25, ratio);
       } else {
-        // trunca preservando fim (CTA) — mantém início e recorta meio
-        const keepStart = Math.floor(targetWords * 0.65);
-        const keepEnd = targetWords - keepStart;
+        const budget = Math.floor(targetWords * 1.4);
+        const keepStart = Math.floor(budget * 0.65);
+        const keepEnd = budget - keepStart;
         finalText = [
           ...words.slice(0, keepStart),
           ...words.slice(words.length - keepEnd),
         ].join(" ");
-        speed = 1.15;
+        speed = 1.25;
       }
     }
+
     setTtsLoading(true);
     try {
       const { base64, mime } = await tts({
@@ -202,6 +206,7 @@ export function VideoStudioDialog({
       const blob = new Blob([bytes], { type: mime });
       if (narrationUrl) URL.revokeObjectURL(narrationUrl);
       setNarrationUrl(URL.createObjectURL(blob));
+      setNarrationText(finalText);
       toast.success("Narração pronta");
     } catch (e: any) {
       toast.error(e.message ?? "Erro na narração");
@@ -249,7 +254,7 @@ export function VideoStudioDialog({
         imageUrl: product.image_url ?? null,
         sceneImageUrls: scenes.map((s) => s.dataUrl),
 
-        captionsText: script || title,
+        captionsText: narrationText || script || title,
         narrationUrl,
         musicUrl,
         durationSeconds: duration,

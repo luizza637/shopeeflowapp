@@ -74,13 +74,19 @@ function splitCaptions(text: string, duration: number) {
     .map((s) => s.trim())
     .filter(Boolean);
   if (parts.length === 0) return [] as { start: number; end: number; text: string }[];
-  const per = duration / parts.length;
-  return parts.map((t, i) => ({
-    start: i * per,
-    end: (i + 1) * per,
-    text: t,
-  }));
+  // Distribui o tempo proporcionalmente ao tamanho de cada trecho (fala real),
+  // em vez de dividir igualmente — isso mantém a legenda sincronizada com a voz.
+  const weights = parts.map((p) => Math.max(1, p.replace(/\s+/g, "").length));
+  const totalW = weights.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  return parts.map((t, i) => {
+    const start = (acc / totalW) * duration;
+    acc += weights[i];
+    const end = (acc / totalW) * duration;
+    return { start, end, text: t };
+  });
 }
+
 
 function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -122,10 +128,23 @@ export async function composeVideo(
   const loaded = (await Promise.all(sceneUrls.map((u) => loadImage(u)))).filter(
     (i): i is HTMLImageElement => !!i,
   );
-  const scenes = loaded.length ? loaded : [];
-  
-  const captions = splitCaptions(opts.captionsText, opts.durationSeconds);
+  // Pré-escala cada imagem para o tamanho máximo usado no quadro. Desenhar
+  // fotos gigantes a cada frame é o que causava travadinhas na animação.
+  const MAX_ZOOM = 1.3;
+  const scenes = loaded.map((img) => {
+    const cover = Math.max(WIDTH / img.naturalWidth, HEIGHT / img.naturalHeight) * MAX_ZOOM;
+    const w = Math.round(img.naturalWidth * cover);
+    const h = Math.round(img.naturalHeight * cover);
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const cc = c.getContext("2d")!;
+    cc.imageSmoothingQuality = "high";
+    cc.drawImage(img, 0, 0, w, h);
+    return { src: c as CanvasImageSource, w, h };
+  });
 
+  
 
   // Audio graph
   const AudioCtx =
@@ -148,6 +167,22 @@ export async function composeVideo(
     if (opts.musicUrl) musicBuf = await loadAudioBuffer(opts.musicUrl);
   } catch {}
 
+  // A narração manda no tempo: o vídeo nunca corta a fala no meio.
+  const AUDIO_LEAD = 0.05; // atraso do início do áudio agendado
+  const TAIL = 0.7; // respiro no final
+  const totalDuration = narrationBuf
+    ? Math.max(opts.durationSeconds, narrationBuf.duration + AUDIO_LEAD + TAIL)
+    : opts.durationSeconds;
+  const narrationSpan = narrationBuf ? narrationBuf.duration : totalDuration;
+
+  // Legendas sincronizadas com a fala real (mesmo texto da narração).
+  const captions = splitCaptions(opts.captionsText, narrationSpan).map((c) => ({
+    ...c,
+    start: c.start + AUDIO_LEAD,
+    end: c.end + AUDIO_LEAD,
+  }));
+
+
   const stream = canvas.captureStream(FPS);
   if (dest.stream.getAudioTracks()[0])
     stream.addTrack(dest.stream.getAudioTracks()[0]);
@@ -164,14 +199,14 @@ export async function composeVideo(
 
   // Desenha uma imagem cobrindo o quadro com zoom/pan (Ken Burns)
   const drawCover = (
-    image: HTMLImageElement,
+    image: { src: CanvasImageSource; w: number; h: number },
     scale: number,
     panX: number,
     panY: number,
     alpha = 1,
   ) => {
-    const iw = image.naturalWidth;
-    const ih = image.naturalHeight;
+    const iw = image.w;
+    const ih = image.h;
     const baseScale = Math.max(WIDTH / iw, HEIGHT / ih) * scale;
     const dw = iw * baseScale;
     const dh = ih * baseScale;
@@ -179,12 +214,13 @@ export async function composeVideo(
     const dy = (HEIGHT - dh) / 2 + panY;
     const prev = ctx.globalAlpha;
     ctx.globalAlpha = alpha;
-    ctx.drawImage(image, dx, dy, dw, dh);
+    ctx.drawImage(image.src, dx, dy, dw, dh);
     ctx.globalAlpha = prev;
   };
 
+
   const FADE = 0.5; // segundos de crossfade entre cenas
-  const sceneLen = scenes.length ? opts.durationSeconds / scenes.length : 0;
+  const sceneLen = scenes.length ? totalDuration / scenes.length : 0;
 
   const drawScene = (index: number, t: number, alpha: number) => {
     const image = scenes[index];
@@ -252,7 +288,7 @@ export async function composeVideo(
     }
 
     // title (top)
-    if (opts.title && t < opts.durationSeconds * 0.35) {
+    if (opts.title && t < totalDuration * 0.35) {
       const alpha = Math.min(1, t * 2);
       ctx.globalAlpha = alpha;
       ctx.font = "800 78px system-ui, -apple-system, Segoe UI, sans-serif";
@@ -298,8 +334,8 @@ export async function composeVideo(
     }
 
     // CTA pill (last third)
-    if (opts.cta && t > opts.durationSeconds * 0.7) {
-      const alpha = Math.min(1, (t - opts.durationSeconds * 0.7) * 3);
+    if (opts.cta && t > totalDuration * 0.7) {
+      const alpha = Math.min(1, (t - totalDuration * 0.7) * 3);
       ctx.globalAlpha = alpha;
       ctx.font = "800 56px system-ui, -apple-system, Segoe UI, sans-serif";
       const label = opts.cta.slice(0, 40);
@@ -350,19 +386,30 @@ export async function composeVideo(
   startAudio();
   const t0 = performance.now();
 
+  // Canvas pequeno só para o preview ao vivo — exportar o quadro em 1080x1920
+  // a cada 250ms era pesado e engasgava a animação.
+  const previewCanvas = document.createElement("canvas");
+  previewCanvas.width = 270;
+  previewCanvas.height = 480;
+  const previewCtx = previewCanvas.getContext("2d")!;
+  let lastPreview = 0;
+
   await new Promise<void>((resolve) => {
     let raf = 0;
     const step = () => {
       const elapsed = (performance.now() - t0) / 1000;
-      const t = Math.min(elapsed, opts.durationSeconds);
+      const t = Math.min(elapsed, totalDuration);
       drawFrame(t);
-      opts.onProgress?.(t, opts.durationSeconds);
-      if (opts.onFrame && Math.floor(elapsed * 4) !== Math.floor((elapsed - 1 / FPS) * 4)) {
+      opts.onProgress?.(t, totalDuration);
+      if (opts.onFrame && elapsed - lastPreview >= 0.6) {
+        lastPreview = elapsed;
         try {
-          opts.onFrame(canvas.toDataURL("image/jpeg", 0.6));
+          previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+          opts.onFrame(previewCanvas.toDataURL("image/jpeg", 0.6));
         } catch {}
       }
-      if (elapsed >= opts.durationSeconds) {
+
+      if (elapsed >= totalDuration) {
         cancelAnimationFrame(raf);
         resolve();
       } else {
@@ -379,14 +426,14 @@ export async function composeVideo(
   const blob = new Blob(chunks, { type: mimeType });
 
   // Thumbnail from last-frame canvas (currently the last rendered CTA frame — grab a mid frame instead)
-  drawFrame(opts.durationSeconds * 0.35);
+  drawFrame(totalDuration * 0.35);
   const thumbDataUrl = canvas.toDataURL("image/jpeg", 0.75);
   const thumbnailBase64 = thumbDataUrl.split(",")[1] ?? "";
 
   return {
     blob,
     mimeType,
-    durationSeconds: opts.durationSeconds,
+    durationSeconds: totalDuration,
     width: WIDTH,
     height: HEIGHT,
     thumbnailBase64,
