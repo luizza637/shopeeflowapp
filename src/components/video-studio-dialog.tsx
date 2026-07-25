@@ -247,6 +247,8 @@ export function VideoStudioDialog({
     try {
       const r = await composeVideo({
         imageUrl: product.image_url ?? null,
+        sceneImageUrls: scenes.map((s) => s.dataUrl),
+
         captionsText: script || title,
         narrationUrl,
         musicUrl,
