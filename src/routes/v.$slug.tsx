@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles } from "lucide-react";
+import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import { generateCta } from "@/lib/product-cta";
 import { getProductBadges, BADGE_TONE_CLASS } from "@/lib/product-badges";
 import { playClickSound } from "@/lib/click-sound";
 import { cn } from "@/lib/utils";
+
 
 
 export const Route = createFileRoute("/v/$slug")({
