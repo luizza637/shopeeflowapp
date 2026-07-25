@@ -142,8 +142,11 @@ export const Route = createFileRoute("/api/generate-image")({
         // 1) Chave pessoal do usuário (não consome o saldo de IA do workspace).
         const userKey = await getUserGeminiKey(request);
         if (userKey) {
-          return generateWithUserKey(userKey, prompt, refs);
+          const personal = await generateWithUserKey(userKey, prompt, refs);
+          if (personal) return personal;
+          // cota da chave pessoal esgotada → segue para o saldo do app
         }
+
 
         // 2) Fallback: gateway de IA da Lovable.
         const key = process.env.LOVABLE_API_KEY;
