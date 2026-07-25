@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExternalLink, ShoppingBag, Star, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getPublicStorefront } from "@/lib/storefront.functions";
+import { getPublicStorefront, type PublicProduct } from "@/lib/storefront.functions";
 
 export const Route = createFileRoute("/v/$slug")({
   loader: ({ params }) => getPublicStorefront({ data: { slug: params.slug } }),
@@ -108,7 +108,7 @@ function StorefrontPage() {
               Nenhum produto publicado ainda.
             </p>
           )}
-          {products.map((p) => {
+          {(products as PublicProduct[]).map((p) => {
             const href = p.affiliate_url || p.url || undefined;
             const Wrapper = href ? "a" : "div";
             return (
