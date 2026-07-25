@@ -128,7 +128,22 @@ export async function composeVideo(
   const loaded = (await Promise.all(sceneUrls.map((u) => loadImage(u)))).filter(
     (i): i is HTMLImageElement => !!i,
   );
-  const scenes = loaded.length ? loaded : [];
+  // Pré-escala cada imagem para o tamanho máximo usado no quadro. Desenhar
+  // fotos gigantes a cada frame é o que causava travadinhas na animação.
+  const MAX_ZOOM = 1.3;
+  const scenes = loaded.map((img) => {
+    const cover = Math.max(WIDTH / img.naturalWidth, HEIGHT / img.naturalHeight) * MAX_ZOOM;
+    const w = Math.round(img.naturalWidth * cover);
+    const h = Math.round(img.naturalHeight * cover);
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const cc = c.getContext("2d")!;
+    cc.imageSmoothingQuality = "high";
+    cc.drawImage(img, 0, 0, w, h);
+    return { src: c as CanvasImageSource, w, h };
+  });
+
   
 
   // Audio graph
