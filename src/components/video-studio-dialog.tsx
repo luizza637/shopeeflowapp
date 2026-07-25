@@ -65,6 +65,7 @@ export function VideoStudioDialog({
   const [cta, setCta] = useState("");
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [narrationUrl, setNarrationUrl] = useState<string | null>(null);
+  const [narrationText, setNarrationText] = useState("");
   const [musicUrl, setMusicUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
   const [ttsLoading, setTtsLoading] = useState(false);
@@ -104,6 +105,7 @@ export function VideoStudioDialog({
     if (narrationUrl) URL.revokeObjectURL(narrationUrl);
     if (musicUrl) URL.revokeObjectURL(musicUrl);
     setNarrationUrl(null);
+    setNarrationText("");
     setMusicUrl(null);
     setResult(null);
     setVideoUrl(null);
@@ -202,6 +204,7 @@ export function VideoStudioDialog({
       const blob = new Blob([bytes], { type: mime });
       if (narrationUrl) URL.revokeObjectURL(narrationUrl);
       setNarrationUrl(URL.createObjectURL(blob));
+      setNarrationText(finalText);
       toast.success("Narração pronta");
     } catch (e: any) {
       toast.error(e.message ?? "Erro na narração");
@@ -249,7 +252,7 @@ export function VideoStudioDialog({
         imageUrl: product.image_url ?? null,
         sceneImageUrls: scenes.map((s) => s.dataUrl),
 
-        captionsText: script || title,
+        captionsText: narrationText || script || title,
         narrationUrl,
         musicUrl,
         durationSeconds: duration,
