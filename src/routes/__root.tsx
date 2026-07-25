@@ -97,6 +97,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Encontre produtos, gere vídeos com IA, agende e publique no TikTok e Instagram. Automação completa para afiliados da Shopee." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/WgMFNichMUTu9Pn8ACzpjbYtw5N2/social-images/social-1784992943007-ChatGPT_Image_25_07_2026,_12_21_48.webp" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/WgMFNichMUTu9Pn8ACzpjbYtw5N2/social-images/social-1784992943007-ChatGPT_Image_25_07_2026,_12_21_48.webp" },
+      { name: "theme-color", content: "#ff6a00" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "ShopeeFlow" },
     ],
     links: [
       {
@@ -104,7 +109,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap",
       },
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
     ],
+
   }),
   shellComponent: RootShell,
   component: RootComponent,
