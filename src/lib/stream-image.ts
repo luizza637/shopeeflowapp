@@ -1,5 +1,7 @@
 import { createParser } from "eventsource-parser";
 import { flushSync } from "react-dom";
+import { supabase } from "@/integrations/supabase/client";
+
 
 type ImageEventPayload =
   | {
