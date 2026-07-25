@@ -199,14 +199,14 @@ export async function composeVideo(
 
   // Desenha uma imagem cobrindo o quadro com zoom/pan (Ken Burns)
   const drawCover = (
-    image: HTMLImageElement,
+    image: { src: CanvasImageSource; w: number; h: number },
     scale: number,
     panX: number,
     panY: number,
     alpha = 1,
   ) => {
-    const iw = image.naturalWidth;
-    const ih = image.naturalHeight;
+    const iw = image.w;
+    const ih = image.h;
     const baseScale = Math.max(WIDTH / iw, HEIGHT / ih) * scale;
     const dw = iw * baseScale;
     const dh = ih * baseScale;
@@ -214,9 +214,10 @@ export async function composeVideo(
     const dy = (HEIGHT - dh) / 2 + panY;
     const prev = ctx.globalAlpha;
     ctx.globalAlpha = alpha;
-    ctx.drawImage(image, dx, dy, dw, dh);
+    ctx.drawImage(image.src, dx, dy, dw, dh);
     ctx.globalAlpha = prev;
   };
+
 
   const FADE = 0.5; // segundos de crossfade entre cenas
   const sceneLen = scenes.length ? totalDuration / scenes.length : 0;
