@@ -233,7 +233,9 @@ function StorefrontPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-background pb-16">
+      <AnimatedBackdrop />
       <div
+
         className="pointer-events-none absolute inset-x-0 top-0 h-72 animate-pulse opacity-30"
         style={{
           background:
