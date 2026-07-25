@@ -209,3 +209,47 @@
 #lovable-badge {
   display: none !important;
 }
+
+@keyframes sf-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes sf-pop-in {
+  0% { opacity: 0; transform: translateY(14px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sf-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes sf-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-primary) 45%, transparent); }
+  50% { box-shadow: 0 0 26px 4px color-mix(in oklab, var(--color-primary) 30%, transparent); }
+}
+@keyframes sf-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes sf-wiggle {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+@utility animate-sf-float { animation: sf-float 4s ease-in-out infinite; }
+@utility animate-sf-pop-in { animation: sf-pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@utility animate-sf-glow { animation: sf-glow 2.6s ease-in-out infinite; }
+@utility animate-sf-marquee { animation: sf-marquee 22s linear infinite; }
+@utility animate-sf-wiggle { animation: sf-wiggle 1.6s ease-in-out infinite; }
+@utility text-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-foreground) 0%,
+    var(--color-primary) 45%,
+    var(--color-foreground) 90%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: sf-shimmer 4s linear infinite;
+}
