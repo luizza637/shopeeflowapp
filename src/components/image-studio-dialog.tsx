@@ -35,6 +35,7 @@ export function ImageStudioDialog({
   const [preview, setPreview] = useState<string | null>(null);
   const [isFinal, setIsFinal] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [refs, setRefs] = useState<string[]>([]);
   const qc = useQueryClient();
   const save = useServerFn(saveGeneratedImage);
 
@@ -49,7 +50,32 @@ export function ImageStudioDialog({
     return parts;
   };
 
-  const canEdit = mode === "edit" && !!product?.image_url;
+  const allRefs = () => {
+    const list: string[] = [];
+    if (mode === "edit" && product?.image_url) list.push(product.image_url);
+    list.push(...refs);
+    return list;
+  };
+
+  const canEdit = mode === "edit" && allRefs().length > 0;
+
+  const addFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const picked = Array.from(files).slice(0, 4);
+    const read = await Promise.all(
+      picked.map(
+        (f) =>
+          new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(String(r.result));
+            r.onerror = () => reject(new Error("Falha ao ler imagem"));
+            r.readAsDataURL(f);
+          }),
+      ),
+    );
+    setRefs((v) => [...v, ...read].slice(0, 4));
+    setMode("edit");
+  };
 
   const run = async () => {
     const finalPrompt = prompt.trim() || suggestedPrompt();
@@ -58,11 +84,14 @@ export function ImageStudioDialog({
     setIsFinal(false);
     setIsStreaming(true);
     try {
+      const refList = allRefs();
       await streamImage(
         "/api/generate-image",
         {
-          prompt: finalPrompt,
-          imageUrl: mode === "edit" ? product?.image_url ?? null : null,
+          prompt: refList.length
+            ? `${finalPrompt}. Mantenha o produto EXATAMENTE igual às imagens de referência: mesmo formato, mesmas cores, mesmos detalhes e mesma marca. Apenas mude cenário, iluminação e enquadramento.`
+            : finalPrompt,
+          imageUrls: refList,
         },
         (dataUrl, final) => {
           setPreview(dataUrl);
@@ -75,6 +104,7 @@ export function ImageStudioDialog({
       setIsStreaming(false);
     }
   };
+
 
   const saveMutation = useMutation({
     mutationFn: async (attachToProduct: boolean) => {
