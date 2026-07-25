@@ -74,13 +74,19 @@ function splitCaptions(text: string, duration: number) {
     .map((s) => s.trim())
     .filter(Boolean);
   if (parts.length === 0) return [] as { start: number; end: number; text: string }[];
-  const per = duration / parts.length;
-  return parts.map((t, i) => ({
-    start: i * per,
-    end: (i + 1) * per,
-    text: t,
-  }));
+  // Distribui o tempo proporcionalmente ao tamanho de cada trecho (fala real),
+  // em vez de dividir igualmente — isso mantém a legenda sincronizada com a voz.
+  const weights = parts.map((p) => Math.max(1, p.replace(/\s+/g, "").length));
+  const totalW = weights.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  return parts.map((t, i) => {
+    const start = (acc / totalW) * duration;
+    acc += weights[i];
+    const end = (acc / totalW) * duration;
+    return { start, end, text: t };
+  });
 }
+
 
 function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
