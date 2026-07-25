@@ -97,6 +97,55 @@ function Ticker() {
   );
 }
 
+function AnimatedBackdrop() {
+  const bubbles = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => ({
+        left: `${(i * 7.3 + 4) % 96}%`,
+        size: 6 + ((i * 13) % 18),
+        delay: `${(i * 1.15) % 16}s`,
+        duration: `${13 + ((i * 3) % 9)}s`,
+      })),
+    [],
+  );
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div className="sf-grid-bg absolute inset-0 opacity-[0.18]" />
+      <div
+        className="animate-sf-blob absolute -left-24 top-10 h-72 w-72 rounded-full blur-3xl"
+        style={{ background: "color-mix(in oklab, var(--primary) 35%, transparent)" }}
+      />
+      <div
+        className="animate-sf-blob absolute -right-20 top-1/3 h-80 w-80 rounded-full blur-3xl"
+        style={{
+          background: "color-mix(in oklab, var(--primary) 22%, transparent)",
+          animationDelay: "-6s",
+        }}
+      />
+      <div
+        className="animate-sf-blob absolute bottom-0 left-1/4 h-64 w-64 rounded-full blur-3xl"
+        style={{
+          background: "color-mix(in oklab, var(--primary) 18%, transparent)",
+          animationDelay: "-11s",
+        }}
+      />
+      {bubbles.map((b, i) => (
+        <span
+          key={i}
+          className="animate-sf-drift absolute bottom-[-10vh] rounded-full bg-primary/40"
+          style={{
+            left: b.left,
+            width: b.size,
+            height: b.size,
+            animationDelay: b.delay,
+            animationDuration: b.duration,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function useVisitorHash() {
   const [hash, setHash] = useState<string | null>(null);
   useEffect(() => {
@@ -113,6 +162,7 @@ function useVisitorHash() {
   }, []);
   return hash;
 }
+
 
 function StorefrontPage() {
   const { profile, products } = Route.useLoaderData();
