@@ -114,8 +114,18 @@ export async function composeVideo(
   canvas.height = HEIGHT;
   const ctx = canvas.getContext("2d", { alpha: false })!;
 
-  const img = await loadImage(opts.imageUrl);
+  // Cenas: apresentador IA (quando houver) + foto do produto.
+  const sceneUrls = [
+    ...(opts.sceneImageUrls ?? []),
+    ...(opts.imageUrl ? [opts.imageUrl] : []),
+  ];
+  const loaded = (await Promise.all(sceneUrls.map((u) => loadImage(u)))).filter(
+    (i): i is HTMLImageElement => !!i,
+  );
+  const scenes = loaded.length ? loaded : [];
+  const img = scenes[0] ?? null;
   const captions = splitCaptions(opts.captionsText, opts.durationSeconds);
+
 
   // Audio graph
   const AudioCtx =
