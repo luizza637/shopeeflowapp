@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "ShopeeFlow — Vídeos de afiliada Shopee no automático" },
       {
         property: "og:description",
-        content: "Automação completa para afiliados da Shopee com IA de ponta a ponta.",
+        content: "Encontre produtos, gere vídeos com IA, agende e publique no TikTok e Instagram. Automação completa para afiliados da Shopee.",
       },
     ],
   }),

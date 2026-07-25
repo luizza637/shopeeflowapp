@@ -79,20 +79,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ShopeeFlow — Automação de vídeos para afiliados Shopee" },
+      { title: "ShopeeFlow — Vídeos de afiliada Shopee no automático" },
       {
         name: "description",
         content:
-          "Encontre produtos, gere vídeos com IA, legende, agende e publique no TikTok e Instagram. O assistente pessoal para afiliados da Shopee.",
+          "Encontre produtos, gere vídeos com IA, agende e publique no TikTok e Instagram. Automação completa para afiliados da Shopee.",
       },
-      { property: "og:title", content: "ShopeeFlow — Automação de vídeos para afiliados Shopee" },
+      { property: "og:title", content: "ShopeeFlow — Vídeos de afiliada Shopee no automático" },
       {
         property: "og:description",
         content:
-          "Encontre produtos, gere vídeos com IA, legende, agende e publique no TikTok e Instagram.",
+          "Encontre produtos, gere vídeos com IA, agende e publique no TikTok e Instagram. Automação completa para afiliados da Shopee.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "ShopeeFlow — Vídeos de afiliada Shopee no automático" },
+      { name: "twitter:description", content: "Encontre produtos, gere vídeos com IA, agende e publique no TikTok e Instagram. Automação completa para afiliados da Shopee." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/WgMFNichMUTu9Pn8ACzpjbYtw5N2/social-images/social-1784992943007-ChatGPT_Image_25_07_2026,_12_21_48.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/WgMFNichMUTu9Pn8ACzpjbYtw5N2/social-images/social-1784992943007-ChatGPT_Image_25_07_2026,_12_21_48.webp" },
     ],
     links: [
       {
@@ -100,7 +104,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap",
       },
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
   shellComponent: RootShell,
