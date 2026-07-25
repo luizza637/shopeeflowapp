@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Sparkles, Loader2, Download, ImagePlus, Wand2 } from "lucide-react";
+import { Sparkles, Loader2, Download, ImagePlus, Wand2, Upload, X } from "lucide-react";
 import { streamImage } from "@/lib/stream-image";
 import { saveGeneratedImage } from "@/lib/images.functions";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ export function ImageStudioDialog({
   const [preview, setPreview] = useState<string | null>(null);
   const [isFinal, setIsFinal] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [refs, setRefs] = useState<string[]>([]);
   const qc = useQueryClient();
   const save = useServerFn(saveGeneratedImage);
 
@@ -49,7 +50,32 @@ export function ImageStudioDialog({
     return parts;
   };
 
-  const canEdit = mode === "edit" && !!product?.image_url;
+  const allRefs = () => {
+    const list: string[] = [];
+    if (mode === "edit" && product?.image_url) list.push(product.image_url);
+    list.push(...refs);
+    return list;
+  };
+
+  const canEdit = mode === "edit" && allRefs().length > 0;
+
+  const addFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const picked = Array.from(files).slice(0, 4);
+    const read = await Promise.all(
+      picked.map(
+        (f) =>
+          new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(String(r.result));
+            r.onerror = () => reject(new Error("Falha ao ler imagem"));
+            r.readAsDataURL(f);
+          }),
+      ),
+    );
+    setRefs((v) => [...v, ...read].slice(0, 4));
+    setMode("edit");
+  };
 
   const run = async () => {
     const finalPrompt = prompt.trim() || suggestedPrompt();
@@ -58,11 +84,14 @@ export function ImageStudioDialog({
     setIsFinal(false);
     setIsStreaming(true);
     try {
+      const refList = allRefs();
       await streamImage(
         "/api/generate-image",
         {
-          prompt: finalPrompt,
-          imageUrl: mode === "edit" ? product?.image_url ?? null : null,
+          prompt: refList.length
+            ? `${finalPrompt}. Mantenha o produto EXATAMENTE igual às imagens de referência: mesmo formato, mesmas cores, mesmos detalhes e mesma marca. Apenas mude cenário, iluminação e enquadramento.`
+            : finalPrompt,
+          imageUrls: refList,
         },
         (dataUrl, final) => {
           setPreview(dataUrl);
@@ -75,6 +104,7 @@ export function ImageStudioDialog({
       setIsStreaming(false);
     }
   };
+
 
   const saveMutation = useMutation({
     mutationFn: async (attachToProduct: boolean) => {
@@ -145,23 +175,69 @@ export function ImageStudioDialog({
               </button>
               <button
                 onClick={() => setMode("edit")}
-                disabled={!product?.image_url}
                 className={cn(
-                  "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all disabled:opacity-40",
+                  "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
                   mode === "edit"
                     ? "bg-gradient-primary text-primary-foreground shadow-glow"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                Melhorar atual
+                Usar referência
               </button>
             </div>
 
-            {mode === "edit" && !product?.image_url && (
-              <p className="text-xs text-warning">
-                Este produto ainda não tem imagem. Gere uma nova primeiro.
-              </p>
-            )}
+            <div className="space-y-2 rounded-xl border border-border bg-surface/40 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Imagens de referência (o produto real)</Label>
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:border-primary/50">
+                  <Upload className="h-3.5 w-3.5" />
+                  Enviar foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      void addFiles(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {mode === "edit" && product?.image_url && (
+                  <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-primary/40">
+                    <img
+                      src={product.image_url}
+                      alt="Imagem atual do produto"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                {refs.map((r, i) => (
+                  <div
+                    key={i}
+                    className="relative h-16 w-16 overflow-hidden rounded-lg border border-border"
+                  >
+                    <img src={r} alt={`Referência ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setRefs((v) => v.filter((_, j) => j !== i))}
+                      className="absolute right-0.5 top-0.5 rounded-full bg-background/80 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {allRefs().length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Envie fotos do produto real (ou use a imagem atual) para a IA manter o formato e
+                    as cores fiéis.
+                  </p>
+                )}
+              </div>
+            </div>
+
 
             <div className="space-y-2">
               <Label>Prompt</Label>
@@ -199,7 +275,7 @@ export function ImageStudioDialog({
 
             <Button
               onClick={run}
-              disabled={isStreaming || (mode === "edit" && !product?.image_url)}
+              disabled={isStreaming}
               className="w-full bg-gradient-primary shadow-glow hover:opacity-90"
             >
               {isStreaming ? (
