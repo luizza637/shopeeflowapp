@@ -64,10 +64,35 @@ const brl = (v: number) =>
 
 function ShopeeBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground shadow-[0_6px_20px_-8px_var(--primary)]">
-      <ShoppingBag className="h-3.5 w-3.5" />
+    <span className="inline-flex animate-sf-glow items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">
+      <ShoppingBag className="h-3.5 w-3.5 animate-sf-wiggle" />
       Shopee
     </span>
+  );
+}
+
+const TICKER = [
+  "🔥 Ofertas atualizadas hoje",
+  "⚡ Frete rápido pela Shopee",
+  "💛 Achadinhos testados e aprovados",
+  "⏳ Estoque limitado",
+  "🏆 Os mais comprados da semana",
+];
+
+function Ticker() {
+  return (
+    <div className="relative mt-6 overflow-hidden rounded-full border border-primary/25 bg-primary/5 py-2">
+      <div className="flex w-max animate-sf-marquee gap-8 pr-8">
+        {[...TICKER, ...TICKER].map((t, i) => (
+          <span
+            key={i}
+            className="whitespace-nowrap text-xs font-semibold text-muted-foreground"
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -114,6 +139,13 @@ function StorefrontPage() {
     return ["Todos", ...Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))];
   }, [list]);
 
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of list) if (p.category) m.set(p.category, (m.get(p.category) ?? 0) + 1);
+    m.set("Todos", list.length);
+    return m;
+  }, [list]);
+
   const filtered = useMemo(
     () => (category === "Todos" ? list : list.filter((p) => p.category === category)),
     [list, category],
@@ -125,6 +157,7 @@ function StorefrontPage() {
   const initials = name.slice(0, 2).toUpperCase();
 
   const share = async () => {
+    playClickSound();
     const url = typeof window !== "undefined" ? window.location.href : "";
     if (navigator.share) {
       try {
@@ -139,38 +172,45 @@ function StorefrontPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-16">
+    <main className="min-h-screen overflow-x-hidden bg-background pb-16">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-30"
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 animate-pulse opacity-30"
         style={{
           background:
             "radial-gradient(60% 60% at 50% 0%, var(--primary) 0%, transparent 70%)",
         }}
       />
       <div className="relative mx-auto w-full max-w-2xl px-4 pt-10">
-        <header className="flex flex-col items-center text-center">
+        <header className="flex animate-sf-pop-in flex-col items-center text-center">
           <ShopeeBadge />
-          <div className="mt-4 h-20 w-20 overflow-hidden rounded-full bg-primary/15 ring-2 ring-primary/40">
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={`Foto de ${name}`}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-xl font-bold text-primary">
-                {initials}
-              </span>
-            )}
+          <div className="mt-4 animate-sf-float">
+            <div className="h-20 w-20 overflow-hidden rounded-full bg-primary/15 ring-2 ring-primary/40 transition duration-300 hover:scale-105 hover:ring-4">
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={`Foto de ${name}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-xl font-bold text-primary">
+                  {initials}
+                </span>
+              )}
+            </div>
           </div>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight">{name}</h1>
+          <h1 className="text-shimmer mt-4 text-2xl font-bold tracking-tight">{name}</h1>
           {profile.storefront_bio && (
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
               {profile.storefront_bio}
             </p>
           )}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={share}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 transition hover:scale-105"
+              onClick={share}
+            >
               <Share2 className="h-4 w-4" /> Compartilhar
             </Button>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
@@ -184,20 +224,27 @@ function StorefrontPage() {
           </div>
         </header>
 
+        <Ticker />
+
         {categories.length > 1 && (
-          <nav className="mt-8 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {categories.map((c) => (
+          <nav className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {categories.map((c, i) => (
               <button
                 key={c}
-                onClick={() => setCategory(c)}
+                onClick={() => {
+                  playClickSound();
+                  setCategory(c);
+                }}
+                style={{ animationDelay: `${i * 45}ms` }}
                 className={cn(
-                  "shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition",
+                  "shrink-0 animate-sf-pop-in rounded-full border px-4 py-1.5 text-xs font-semibold transition duration-200 hover:scale-105 active:scale-95",
                   c === category
-                    ? "border-primary bg-primary text-primary-foreground"
+                    ? "border-primary bg-primary text-primary-foreground shadow-[0_8px_24px_-12px_var(--primary)]"
                     : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
                 )}
               >
                 {c}
+                <span className="ml-1.5 opacity-60">{counts.get(c) ?? 0}</span>
               </button>
             ))}
           </nav>
@@ -209,17 +256,20 @@ function StorefrontPage() {
               Nenhum produto publicado nesta categoria.
             </p>
           )}
-          {filtered.map((p) => {
+          {filtered.map((p, i) => {
             const href = p.affiliate_url || p.url || undefined;
             const Wrapper = href ? "a" : "div";
             const cta = generateCta(p);
+            const badges = getProductBadges(p);
             return (
               <Wrapper
-                key={p.id}
+                key={`${category}-${p.id}`}
                 {...(href
                   ? { href, target: "_blank", rel: "noopener noreferrer sponsored" }
                   : {})}
-                className="group flex gap-3 rounded-2xl border border-border bg-card p-3 transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[0_16px_40px_-24px_var(--primary)] sm:flex-col"
+                onClick={() => playClickSound()}
+                style={{ animationDelay: `${Math.min(i, 12) * 60}ms` }}
+                className="group flex animate-sf-pop-in gap-3 rounded-2xl border border-border bg-card p-3 transition duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_50px_-24px_var(--primary)] active:scale-[0.98] sm:flex-col"
               >
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-auto sm:w-full sm:aspect-square">
                   {p.image_url ? (
@@ -227,7 +277,7 @@ function StorefrontPage() {
                       src={p.image_url}
                       alt={p.name}
                       loading="lazy"
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-110 group-hover:rotate-1"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
@@ -235,7 +285,7 @@ function StorefrontPage() {
                     </div>
                   )}
                   {!!p.discount_percent && (
-                    <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                    <span className="absolute left-1.5 top-1.5 animate-sf-glow rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
                       -{p.discount_percent}%
                     </span>
                   )}
@@ -244,15 +294,30 @@ function StorefrontPage() {
                       {p.category}
                     </span>
                   )}
+                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/25 to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col justify-between">
                   <div>
+                    <div className="mb-1.5 flex flex-wrap gap-1">
+                      {badges.map((b) => (
+                        <span
+                          key={b.label}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold",
+                            BADGE_TONE_CLASS[b.tone],
+                          )}
+                        >
+                          <span className="animate-sf-wiggle">{b.emoji}</span>
+                          {b.label}
+                        </span>
+                      ))}
+                    </div>
                     <h2 className="line-clamp-2 text-sm font-medium leading-snug">
                       {p.name}
                     </h2>
                     <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary">
-                      <Flame className="h-3.5 w-3.5" />
+                      <Flame className="h-3.5 w-3.5 animate-sf-wiggle" />
                       {cta}
                     </p>
                     {p.rating != null && (
@@ -277,7 +342,7 @@ function StorefrontPage() {
                       )}
                     </div>
                     {href && (
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground transition duration-200 group-hover:scale-105 group-hover:shadow-[0_10px_24px_-12px_var(--primary)]">
                         Comprar <ExternalLink className="h-3 w-3" />
                       </span>
                     )}
@@ -288,10 +353,12 @@ function StorefrontPage() {
           })}
         </section>
 
-        <footer className="mt-12 text-center text-xs text-muted-foreground">
-          Links de afiliado Shopee — posso receber comissão pelas compras.
+        <footer className="mt-12 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+          <Sparkles className="h-3.5 w-3.5 text-primary" />
+          Novidades toda semana — volte sempre!
         </footer>
       </div>
     </main>
   );
 }
+
