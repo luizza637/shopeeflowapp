@@ -166,6 +166,78 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_posts: {
+        Row: {
+          attempt_count: number
+          caption: string | null
+          created_at: string
+          error_message: string | null
+          external_id: string | null
+          external_url: string | null
+          hashtags: string | null
+          id: string
+          platform: string
+          product_id: string | null
+          published_at: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          caption?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          hashtags?: string | null
+          id?: string
+          platform: string
+          product_id?: string | null
+          published_at?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          attempt_count?: number
+          caption?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          hashtags?: string | null
+          id?: string
+          platform?: string
+          product_id?: string | null
+          published_at?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_posts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_posts_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           created_at: string
