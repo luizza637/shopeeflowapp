@@ -162,17 +162,40 @@ export async function composeVideo(
   recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
   const stopped = new Promise<void>((res) => (recorder.onstop = () => res()));
 
-  // Precompute image draw rect (cover)
-  const drawImage = (scale: number, panX: number, panY: number) => {
-    if (!img) return;
-    const iw = img.naturalWidth;
-    const ih = img.naturalHeight;
+  // Desenha uma imagem cobrindo o quadro com zoom/pan (Ken Burns)
+  const drawCover = (
+    image: HTMLImageElement,
+    scale: number,
+    panX: number,
+    panY: number,
+    alpha = 1,
+  ) => {
+    const iw = image.naturalWidth;
+    const ih = image.naturalHeight;
     const baseScale = Math.max(WIDTH / iw, HEIGHT / ih) * scale;
     const dw = iw * baseScale;
     const dh = ih * baseScale;
     const dx = (WIDTH - dw) / 2 + panX;
     const dy = (HEIGHT - dh) / 2 + panY;
-    ctx.drawImage(img, dx, dy, dw, dh);
+    const prev = ctx.globalAlpha;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(image, dx, dy, dw, dh);
+    ctx.globalAlpha = prev;
+  };
+
+  const FADE = 0.5; // segundos de crossfade entre cenas
+  const sceneLen = scenes.length ? opts.durationSeconds / scenes.length : 0;
+
+  const drawScene = (index: number, t: number, alpha: number) => {
+    const image = scenes[index];
+    if (!image) return;
+    const local = Math.min(1, Math.max(0, (t - index * sceneLen) / sceneLen));
+    // direção do movimento alterna por cena para dar ritmo
+    const dir = index % 2 === 0 ? 1 : -1;
+    const scale = 1.06 + 0.16 * easeInOut(local);
+    const panX = dir * (Math.sin(local * Math.PI) * 46);
+    const panY = dir * (-28 + local * 56);
+    drawCover(image, scale, panX, panY, alpha);
   };
 
   const drawFrame = (t: number) => {
@@ -183,13 +206,18 @@ export async function composeVideo(
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    if (img) {
-      const p = t / opts.durationSeconds;
-      const scale = 1.08 + 0.18 * easeInOut(p);
-      const panX = Math.sin(p * Math.PI) * 40;
-      const panY = -30 + p * 60;
-      drawImage(scale, panX, panY);
+    if (scenes.length) {
+      const idx = Math.min(scenes.length - 1, Math.floor(t / sceneLen));
+      drawScene(idx, t, 1);
+      // crossfade com a cena seguinte
+      const next = idx + 1;
+      const timeIntoNext = t - next * sceneLen;
+      if (next < scenes.length && timeIntoNext > -FADE) {
+        const a = Math.min(1, Math.max(0, (timeIntoNext + FADE) / FADE));
+        drawScene(next, Math.max(t, next * sceneLen), a);
+      }
     }
+
 
     // vignette
     const rg = ctx.createRadialGradient(
