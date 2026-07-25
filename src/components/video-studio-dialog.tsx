@@ -113,6 +113,9 @@ export function VideoStudioDialog({
     setTitle("");
     setCta("");
     setGenerationId(null);
+    setScenes([]);
+    setScenePreviews({});
+
   };
 
   const handleClose = () => {
