@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/generate-image")({
         const key = process.env.LOVABLE_API_KEY;
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
-        let body: { prompt?: string; imageUrl?: string | null } = {};
+        let body: { prompt?: string; imageUrl?: string | null; imageUrls?: string[] } = {};
         try {
           body = await request.json();
         } catch {
@@ -19,9 +19,14 @@ export const Route = createFileRoute("/api/generate-image")({
         const prompt = (body.prompt ?? "").toString().trim();
         if (!prompt) return new Response("Missing prompt", { status: 400 });
 
+        const refs = [
+          ...(Array.isArray(body.imageUrls) ? body.imageUrls : []),
+          ...(body.imageUrl ? [body.imageUrl] : []),
+        ].filter((u): u is string => typeof u === "string" && u.length > 0);
+
         const content: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
-        if (body.imageUrl) {
-          content.push({ type: "image_url", image_url: { url: body.imageUrl } });
+        for (const url of refs) {
+          content.push({ type: "image_url", image_url: { url } });
         }
 
         const upstream = await fetch(ENDPOINT, {

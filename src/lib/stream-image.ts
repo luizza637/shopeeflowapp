@@ -20,7 +20,7 @@ type ImageEventPayload =
 
 export async function streamImage(
   endpoint: string,
-  input: { prompt: string; imageUrl?: string | null },
+  input: { prompt: string; imageUrl?: string | null; imageUrls?: string[] },
   onFrame: (dataUrl: string, isFinal: boolean) => void,
 ): Promise<void> {
   const res = await fetch(endpoint, {

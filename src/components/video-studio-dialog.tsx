@@ -38,6 +38,7 @@ import {
   generatePresenterScenes,
   buildPresenterPrompts,
   type PresenterScene,
+  type PresenterGender,
 } from "@/lib/presenter-scenes";
 
 
@@ -78,6 +79,7 @@ export function VideoStudioDialog({
   const [scenes, setScenes] = useState<PresenterScene[]>([]);
   const [scenesLoading, setScenesLoading] = useState(false);
   const [scenePreviews, setScenePreviews] = useState<Record<string, string>>({});
+  const [presenterGender, setPresenterGender] = useState<PresenterGender>("auto");
   const musicInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -222,6 +224,7 @@ export function VideoStudioDialog({
     try {
       const total = buildPresenterPrompts(product).length;
       const done = await generatePresenterScenes(product, {
+        gender: presenterGender,
         onSceneProgress: (id, dataUrl) =>
           setScenePreviews((prev) => ({ ...prev, [id]: dataUrl })),
       });
@@ -434,8 +437,8 @@ export function VideoStudioDialog({
                     Apresentador IA
                   </Label>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Gera 3 cenas com uma pessoa segurando e mostrando o produto.
-                    O perfil varia automaticamente conforme a categoria.
+                    Gera 3 cenas com a mesma pessoa (mesmo rosto, roupa e
+                    cenário) segurando e mostrando o produto.
                   </p>
                 </div>
                 <Button
@@ -454,9 +457,38 @@ export function VideoStudioDialog({
                 </Button>
               </div>
 
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  Quem apresenta
+                </Label>
+                <div className="flex gap-1 rounded-lg border border-border bg-surface/40 p-1">
+                  {(
+                    [
+                      ["auto", "Automático"],
+                      ["female", "Mulher"],
+                      ["male", "Homem"],
+                    ] as Array<[PresenterGender, string]>
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={scenesLoading}
+                      onClick={() => setPresenterGender(value)}
+                      className={
+                        presenterGender === value
+                          ? "flex-1 rounded-md bg-gradient-primary px-2 py-1.5 text-xs font-medium text-primary-foreground shadow-glow"
+                          : "flex-1 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {(scenesLoading || scenes.length > 0) && (
                 <div className="grid grid-cols-3 gap-2">
-                  {buildPresenterPrompts(product).map((p) => {
+                  {buildPresenterPrompts(product, presenterGender).map((p) => {
                     const src =
                       scenes.find((s) => s.id === p.id)?.dataUrl ??
                       scenePreviews[p.id];
