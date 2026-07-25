@@ -1,8 +1,15 @@
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ExternalLink, ShoppingBag, Star, Share2 } from "lucide-react";
+import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getPublicStorefront, type PublicProduct } from "@/lib/storefront.functions";
+import {
+  getPublicStorefront,
+  trackStorefrontView,
+  type PublicProduct,
+} from "@/lib/storefront.functions";
+import { generateCta } from "@/lib/product-cta";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/v/$slug")({
   loader: ({ params }) => getPublicStorefront({ data: { slug: params.slug } }),
@@ -52,8 +59,79 @@ function Empty({ title }: { title: string }) {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+function ShopeeBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground shadow-[0_6px_20px_-8px_var(--primary)]">
+      <ShoppingBag className="h-3.5 w-3.5" />
+      Shopee
+    </span>
+  );
+}
+
+function useVisitorHash() {
+  const [hash, setHash] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      let v = localStorage.getItem("sf_visitor");
+      if (!v) {
+        v = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem("sf_visitor", v);
+      }
+      setHash(v);
+    } catch {
+      setHash("anon");
+    }
+  }, []);
+  return hash;
+}
+
 function StorefrontPage() {
   const { profile, products } = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const visitorHash = useVisitorHash();
+  const [category, setCategory] = useState<string>("Todos");
+  const [views, setViews] = useState<number | null>(null);
+
+  const list = (products ?? []) as PublicProduct[];
+
+  useEffect(() => {
+    if (!profile || !visitorHash) return;
+    const key = `sf_seen_${slug}_${new Date().toISOString().slice(0, 10)}`;
+    let already = false;
+    try {
+      already = localStorage.getItem(key) === "1";
+    } catch {
+      /* ignore */
+    }
+    // contador local animado (cresce a cada visita registrada)
+    trackStorefrontView({
+      data: {
+        slug,
+        visitorHash,
+        referrer: typeof document !== "undefined" ? document.referrer || undefined : undefined,
+      },
+    })
+      .then(() => {
+        try {
+          localStorage.setItem(key, "1");
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {});
+    setViews(already ? null : null);
+  }, [profile, visitorHash, slug]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of list) if (p.category) set.add(p.category);
+    return ["Todos", ...Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))];
+  }, [list]);
+
+  const filtered = useMemo(
+    () => (category === "Todos" ? list : list.filter((p) => p.category === category)),
+    [list, category],
+  );
 
   if (!profile) return <Empty title="Vitrine não encontrada" />;
 
@@ -76,9 +154,17 @@ function StorefrontPage() {
 
   return (
     <main className="min-h-screen bg-background pb-16">
-      <div className="mx-auto w-full max-w-2xl px-4 pt-10">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-30"
+        style={{
+          background:
+            "radial-gradient(60% 60% at 50% 0%, var(--primary) 0%, transparent 70%)",
+        }}
+      />
+      <div className="relative mx-auto w-full max-w-2xl px-4 pt-10">
         <header className="flex flex-col items-center text-center">
-          <div className="h-20 w-20 overflow-hidden rounded-full bg-primary/15 ring-2 ring-primary/40">
+          <ShopeeBadge />
+          <div className="mt-4 h-20 w-20 overflow-hidden rounded-full bg-primary/15 ring-2 ring-primary/40">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -97,27 +183,57 @@ function StorefrontPage() {
               {profile.storefront_bio}
             </p>
           )}
-          <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={share}>
-            <Share2 className="h-4 w-4" /> Compartilhar vitrine
-          </Button>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={share}>
+              <Share2 className="h-4 w-4" /> Compartilhar
+            </Button>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              <Eye className="h-3.5 w-3.5" />
+              {filtered.length} achados online
+            </span>
+          </div>
         </header>
 
-        <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {products.length === 0 && (
+        {categories.length > 1 && (
+          <nav className="mt-8 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {categories.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                className={cn(
+                  "shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition",
+                  c === category
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {filtered.length === 0 && (
             <p className="col-span-full py-16 text-center text-sm text-muted-foreground">
-              Nenhum produto publicado ainda.
+              Nenhum produto publicado nesta categoria.
             </p>
           )}
-          {(products as PublicProduct[]).map((p) => {
+          {filtered.map((p) => {
             const href = p.affiliate_url || p.url || undefined;
             const Wrapper = href ? "a" : "div";
+            const cta = generateCta(p);
             return (
               <Wrapper
                 key={p.id}
                 {...(href
                   ? { href, target: "_blank", rel: "noopener noreferrer sponsored" }
                   : {})}
-                className="group flex gap-3 rounded-2xl border border-border bg-card p-3 transition hover:border-primary/50 hover:bg-card/80 sm:flex-col"
+                className="group flex gap-3 rounded-2xl border border-border bg-card p-3 transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[0_16px_40px_-24px_var(--primary)] sm:flex-col"
               >
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-auto sm:w-full sm:aspect-square">
                   {p.image_url ? (
@@ -137,6 +253,11 @@ function StorefrontPage() {
                       -{p.discount_percent}%
                     </span>
                   )}
+                  {p.category && (
+                    <span className="absolute bottom-1.5 left-1.5 rounded-md bg-background/80 px-1.5 py-0.5 text-[10px] font-medium backdrop-blur">
+                      {p.category}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col justify-between">
@@ -144,8 +265,12 @@ function StorefrontPage() {
                     <h2 className="line-clamp-2 text-sm font-medium leading-snug">
                       {p.name}
                     </h2>
+                    <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                      <Flame className="h-3.5 w-3.5" />
+                      {cta}
+                    </p>
                     {p.rating != null && (
-                      <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                         <Star className="h-3 w-3 fill-primary text-primary" />
                         {Number(p.rating).toFixed(1)}
                         {p.shop_name ? ` · ${p.shop_name}` : ""}
@@ -166,8 +291,8 @@ function StorefrontPage() {
                       )}
                     </div>
                     {href && (
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-                        Ver <ExternalLink className="h-3 w-3" />
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                        Comprar <ExternalLink className="h-3 w-3" />
                       </span>
                     )}
                   </div>
@@ -178,7 +303,7 @@ function StorefrontPage() {
         </section>
 
         <footer className="mt-12 text-center text-xs text-muted-foreground">
-          Links de afiliado — posso receber comissão pelas compras.
+          Links de afiliado Shopee — posso receber comissão pelas compras.
         </footer>
       </div>
     </main>
