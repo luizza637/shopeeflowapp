@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles } from "lucide-react";
+import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import { generateCta } from "@/lib/product-cta";
 import { getProductBadges, BADGE_TONE_CLASS } from "@/lib/product-badges";
 import { playClickSound } from "@/lib/click-sound";
 import { cn } from "@/lib/utils";
+
 
 
 export const Route = createFileRoute("/v/$slug")({
@@ -96,6 +97,55 @@ function Ticker() {
   );
 }
 
+function AnimatedBackdrop() {
+  const bubbles = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => ({
+        left: `${(i * 7.3 + 4) % 96}%`,
+        size: 6 + ((i * 13) % 18),
+        delay: `${(i * 1.15) % 16}s`,
+        duration: `${13 + ((i * 3) % 9)}s`,
+      })),
+    [],
+  );
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div className="sf-grid-bg absolute inset-0 opacity-[0.18]" />
+      <div
+        className="animate-sf-blob absolute -left-24 top-10 h-72 w-72 rounded-full blur-3xl"
+        style={{ background: "color-mix(in oklab, var(--primary) 35%, transparent)" }}
+      />
+      <div
+        className="animate-sf-blob absolute -right-20 top-1/3 h-80 w-80 rounded-full blur-3xl"
+        style={{
+          background: "color-mix(in oklab, var(--primary) 22%, transparent)",
+          animationDelay: "-6s",
+        }}
+      />
+      <div
+        className="animate-sf-blob absolute bottom-0 left-1/4 h-64 w-64 rounded-full blur-3xl"
+        style={{
+          background: "color-mix(in oklab, var(--primary) 18%, transparent)",
+          animationDelay: "-11s",
+        }}
+      />
+      {bubbles.map((b, i) => (
+        <span
+          key={i}
+          className="animate-sf-drift absolute bottom-[-10vh] rounded-full bg-primary/40"
+          style={{
+            left: b.left,
+            width: b.size,
+            height: b.size,
+            animationDelay: b.delay,
+            animationDuration: b.duration,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function useVisitorHash() {
   const [hash, setHash] = useState<string | null>(null);
   useEffect(() => {
@@ -113,11 +163,14 @@ function useVisitorHash() {
   return hash;
 }
 
+
 function StorefrontPage() {
   const { profile, products } = Route.useLoaderData();
   const { slug } = Route.useParams();
   const visitorHash = useVisitorHash();
   const [category, setCategory] = useState<string>("Todos");
+  const [query, setQuery] = useState("");
+
 
   const list = (products ?? []) as PublicProduct[];
 
@@ -146,10 +199,17 @@ function StorefrontPage() {
     return m;
   }, [list]);
 
-  const filtered = useMemo(
-    () => (category === "Todos" ? list : list.filter((p) => p.category === category)),
-    [list, category],
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return list.filter((p) => {
+      if (category !== "Todos" && p.category !== category) return false;
+      if (!q) return true;
+      return [p.name, p.category, p.shop_name]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [list, category, query]);
+
 
   if (!profile) return <Empty title="Vitrine não encontrada" />;
 
@@ -173,7 +233,9 @@ function StorefrontPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-background pb-16">
+      <AnimatedBackdrop />
       <div
+
         className="pointer-events-none absolute inset-x-0 top-0 h-72 animate-pulse opacity-30"
         style={{
           background:
@@ -225,6 +287,33 @@ function StorefrontPage() {
         </header>
 
         <Ticker />
+
+        <div className="relative mt-6 animate-sf-pop-in">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar produto ou categoria..."
+            aria-label="Buscar produtos"
+            className="w-full rounded-full border border-border bg-card/80 py-2.5 pl-10 pr-10 text-sm outline-none backdrop-blur transition focus:border-primary/60 focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]"
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="Limpar busca"
+              onClick={() => {
+                playClickSound();
+                setQuery("");
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition hover:scale-110 hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+
 
         {categories.length > 1 && (
           <nav className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
