@@ -20,12 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Video, Mic, Sparkles, Download, Save } from "lucide-react";
+import {
+  Loader2,
+  Video,
+  Mic,
+  Sparkles,
+  Download,
+  Save,
+  UserRound,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { generateNarration } from "@/lib/tts.functions";
 import { listGenerations, generateProductContent } from "@/lib/ai-content.functions";
 import { saveVideoRecord } from "@/lib/videos.functions";
 import { composeVideo, type ComposeResult } from "@/lib/video-composer";
+import {
+  generatePresenterScenes,
+  buildPresenterPrompts,
+  type PresenterScene,
+} from "@/lib/presenter-scenes";
+
 
 type Voice = "nova" | "alloy" | "echo" | "fable" | "onyx" | "shimmer";
 type Duration = 15 | 30 | 60;
@@ -60,7 +74,11 @@ export function VideoStudioDialog({
   const [result, setResult] = useState<ComposeResult | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [scenes, setScenes] = useState<PresenterScene[]>([]);
+  const [scenesLoading, setScenesLoading] = useState(false);
+  const [scenePreviews, setScenePreviews] = useState<Record<string, string>>({});
   const musicInputRef = useRef<HTMLInputElement>(null);
+
 
   const { data: generations = [] } = useQuery({
     queryKey: ["ai_generations", product?.id],
@@ -95,6 +113,9 @@ export function VideoStudioDialog({
     setTitle("");
     setCta("");
     setGenerationId(null);
+    setScenes([]);
+    setScenePreviews({});
+
   };
 
   const handleClose = () => {
@@ -189,11 +210,35 @@ export function VideoStudioDialog({
     }
   };
 
+  const makePresenter = async () => {
+    setScenesLoading(true);
+    setScenePreviews({});
+    setScenes([]);
+    try {
+      const total = buildPresenterPrompts(product).length;
+      const done = await generatePresenterScenes(product, {
+        onSceneProgress: (id, dataUrl) =>
+          setScenePreviews((prev) => ({ ...prev, [id]: dataUrl })),
+      });
+      setScenes(done);
+      if (done.length < total) {
+        toast.warning(`${done.length} de ${total} cenas geradas`);
+      } else {
+        toast.success("Apresentador IA pronto — cenas geradas");
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao gerar apresentador");
+    } finally {
+      setScenesLoading(false);
+    }
+  };
+
   const render = async () => {
     if (!script.trim() && !title.trim()) {
       toast.error("Adicione um roteiro ou título");
       return;
     }
+
     setRendering(true);
     setProgress(0);
     setResult(null);
@@ -202,6 +247,8 @@ export function VideoStudioDialog({
     try {
       const r = await composeVideo({
         imageUrl: product.image_url ?? null,
+        sceneImageUrls: scenes.map((s) => s.dataUrl),
+
         captionsText: script || title,
         narrationUrl,
         musicUrl,
@@ -373,6 +420,77 @@ export function VideoStudioDialog({
                 placeholder="Ex: Corre no link da bio!"
               />
             </div>
+
+            <div className="space-y-3 rounded-xl border border-border bg-surface/50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <UserRound className="h-4 w-4 text-primary" />
+                    Apresentador IA
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Gera 3 cenas com uma pessoa segurando e mostrando o produto.
+                    O perfil varia automaticamente conforme a categoria.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={makePresenter}
+                  disabled={scenesLoading}
+                >
+                  {scenesLoading ? (
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-3.5 w-3.5" />
+                  )}
+                  {scenes.length ? "Regerar cenas" : "Gerar cenas"}
+                </Button>
+              </div>
+
+              {(scenesLoading || scenes.length > 0) && (
+                <div className="grid grid-cols-3 gap-2">
+                  {buildPresenterPrompts(product).map((p) => {
+                    const src =
+                      scenes.find((s) => s.id === p.id)?.dataUrl ??
+                      scenePreviews[p.id];
+                    const isFinal = scenes.some((s) => s.id === p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className="overflow-hidden rounded-lg border border-border bg-black"
+                      >
+                        <div className="relative aspect-[9/16]">
+                          {src ? (
+                            <img
+                              src={src}
+                              alt={p.label}
+                              className={
+                                isFinal
+                                  ? "h-full w-full object-cover"
+                                  : "h-full w-full object-cover blur-md"
+                              }
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {scenes.length > 0 && (
+                <p className="text-xs text-primary">
+                  {scenes.length} cenas prontas — serão usadas no vídeo com cortes
+                  e transições suaves.
+                </p>
+              )}
+            </div>
+
 
             <div className="grid grid-cols-2 gap-3">
               <Button
