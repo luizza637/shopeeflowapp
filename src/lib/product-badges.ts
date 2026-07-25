@@ -37,7 +37,8 @@ const FILLERS: ProductBadge[] = [
 ];
 
 export function getProductBadges(p: BadgeProduct): ProductBadge[] {
-  const seed = hash(p.id + p.name);
+  if (!p) return [];
+  const seed = hash(String(p.id ?? "") + String(p.name ?? ""));
   const badges: ProductBadge[] = [];
 
   const discount =
@@ -54,11 +55,13 @@ export function getProductBadges(p: BadgeProduct): ProductBadge[] {
   if (p.price != null && Number(p.price) > 0 && Number(p.price) <= 30)
     badges.push({ label: "Menos de R$30", emoji: "💸", tone: "info" });
 
-  if (badges.length === 0) badges.push(FILLERS[seed % FILLERS.length]);
+  const pick = (i: number) => FILLERS[((i % FILLERS.length) + FILLERS.length) % FILLERS.length];
+
+  if (badges.length === 0) badges.push(pick(seed));
   if (badges.length < 2 && seed % 3 !== 0) {
     for (let k = 0; k < FILLERS.length; k++) {
-      const cand = FILLERS[((seed >> 3) + k) % FILLERS.length];
-      if (!badges.some((b) => b.label === cand.label)) {
+      const cand = pick((seed >> 3) + k);
+      if (cand && !badges.some((b) => b?.label === cand.label)) {
         badges.push(cand);
         break;
       }
@@ -66,8 +69,11 @@ export function getProductBadges(p: BadgeProduct): ProductBadge[] {
   }
 
   const seen = new Set<string>();
-  return badges.filter((b) => !seen.has(b.label) && seen.add(b.label)).slice(0, 2);
+  return badges
+    .filter((b): b is ProductBadge => !!b && !seen.has(b.label) && seen.add(b.label) !== undefined)
+    .slice(0, 2);
 }
+
 
 export const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   hot: "bg-primary/15 text-primary border-primary/40",
