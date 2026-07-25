@@ -140,15 +140,19 @@ export const trackStorefrontView = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!profile) return { ok: false, views: 0 };
 
-    await supabasePublic.from("storefront_views").insert({
+    // Registro de visitas é feito somente pelo servidor (service role):
+    // clientes não têm permissão de inserir e não podem falsificar métricas.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("storefront_views").insert({
       profile_id: profile.id,
       slug: data.slug,
-      visitor_hash: data.visitorHash ?? null,
-      referrer: data.referrer ?? null,
+      visitor_hash: data.visitorHash ? data.visitorHash.slice(0, 64) : null,
+      referrer: data.referrer ? data.referrer.slice(0, 300) : null,
     });
 
     return { ok: true };
   });
+
 
 export const getStorefrontStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
