@@ -104,6 +104,78 @@ function VideosPage() {
     setPickerOpen(false);
   };
 
+  const toggleSelect = (id: string) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const videoLabel = (v: any) => v.title ?? v.products?.name ?? "video";
+
+  const copyText = async (text: string, msg = "Legenda copiada!") => {
+    await navigator.clipboard.writeText(text);
+    toast.success(msg);
+  };
+
+  const copyCaption = async (v: any) => {
+    try {
+      const kit = await postCopy({ data: { videoId: v.id } });
+      await copyText(kit.text);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível montar a legenda");
+    }
+  };
+
+  /** Kit de post: baixa vídeo + capa e copia a legenda com hashtags */
+  const downloadKit = async (v: any) => {
+    setBusy(true);
+    try {
+      const base = safeName(videoLabel(v));
+      await downloadUrl(v.url, `${base}.mp4`);
+      if (v.thumbnail_url) await downloadUrl(v.thumbnail_url, `${base}-capa.jpg`);
+      const kit = await postCopy({ data: { videoId: v.id } });
+      await copyText(kit.text, "Kit pronto! Vídeo e capa baixados, legenda copiada.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao montar o kit");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const downloadSelected = async () => {
+    const items = videos.filter((v: any) => selected.includes(v.id));
+    if (!items.length) return;
+    setBusy(true);
+    try {
+      for (const v of items) {
+        await downloadUrl(v.url, `${safeName(videoLabel(v))}.mp4`);
+        await new Promise((r) => setTimeout(r, 700));
+      }
+      toast.success(`${items.length} vídeo(s) baixado(s)`);
+    } catch {
+      toast.error("Alguns downloads falharam");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copySelectedCaptions = async () => {
+    const items = videos.filter((v: any) => selected.includes(v.id));
+    if (!items.length) return;
+    setBusy(true);
+    try {
+      const parts: string[] = [];
+      for (const v of items) {
+        const kit = await postCopy({ data: { videoId: v.id } });
+        parts.push(`— ${videoLabel(v)} —\n${kit.text}`);
+      }
+      await copyText(parts.join("\n\n"), "Legendas copiadas!");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao copiar legendas");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
