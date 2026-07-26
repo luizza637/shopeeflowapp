@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -15,9 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Upload } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
 import { importFromShopeeLink } from "@/lib/import-product.functions";
+import { uploadProductPhoto } from "@/lib/images.functions";
+
 
 
 type Product = {
@@ -99,6 +101,45 @@ export function ProductFormDialog({
     }
     importMutation.mutate(url);
   };
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const uploadPhoto = useServerFn(uploadProductPhoto);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Não consegui ler o arquivo"));
+        reader.readAsDataURL(file);
+      });
+      return uploadPhoto({
+        data: { base64, contentType: file.type || "image/jpeg" },
+      });
+    },
+    onSuccess: (r: any) => {
+      setForm((f) => ({ ...f, image_url: r.url }));
+      toast.success("Foto enviada");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Não consegui enviar a foto"),
+  });
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx. 8MB)");
+      return;
+    }
+    uploadMutation.mutate(file);
+  };
+
+
 
 
   useEffect(() => {
@@ -185,27 +226,59 @@ export function ProductFormDialog({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface/40 px-4 py-3">
-            <div className="min-w-[180px] flex-1">
-              <p className="text-sm font-medium">Importar foto do link</p>
-              <p className="text-xs text-muted-foreground">
-                Baixa a foto oficial do produto na Shopee — grátis, sem IA.
-              </p>
+          <div className="space-y-3 rounded-lg border border-border bg-surface/40 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-[180px] flex-1">
+                <p className="text-sm font-medium">Enviar foto do celular/PC</p>
+                <p className="text-xs text-muted-foreground">
+                  Jeito mais confiável: salve a foto no app da Shopee e envie aqui (grátis, sem IA).
+                </p>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPickFile}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploadMutation.isPending}
+              >
+                {uploadMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-4 w-4" />
+                )}
+                Enviar foto
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={runImport}
-              disabled={importMutation.isPending}
-            >
-              {importMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Importar do link
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+              <div className="min-w-[180px] flex-1">
+                <p className="text-sm font-medium">Importar foto do link</p>
+                <p className="text-xs text-muted-foreground">
+                  Tenta baixar a foto oficial pelo link — pode falhar se a Shopee bloquear.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={runImport}
+                disabled={importMutation.isPending}
+              >
+                {importMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Tentar pelo link
+              </Button>
+            </div>
           </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="image_url">URL da imagem</Label>
