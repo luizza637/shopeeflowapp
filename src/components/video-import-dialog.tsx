@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { saveVideoRecord } from "@/lib/videos.functions";
-import { sanitizeVideo } from "@/lib/video-sanitize";
+import { sanitizeVideo, type SanitizeMode } from "@/lib/video-sanitize";
 
 export function VideoImportDialog({
   open,
