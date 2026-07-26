@@ -52,3 +52,37 @@ export const saveGeneratedImage = createServerFn({ method: "POST" })
 
     return { path, url: signed.signedUrl };
   });
+
+const UploadInput = z.object({
+  base64: z.string().min(20),
+  contentType: z
+    .string()
+    .regex(/^image\/(png|jpeg|jpg|webp)$/i)
+    .default("image/jpeg"),
+});
+
+/** Envia uma foto do dispositivo do usuário (sem IA) e devolve a URL assinada. */
+export const uploadProductPhoto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UploadInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const bytes = base64ToBytes(data.base64);
+    if (bytes.byteLength > 8 * 1024 * 1024) throw new Error("Imagem muito grande (máx. 8MB).");
+
+    const ct = data.contentType.toLowerCase();
+    const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
+    const path = `${userId}/uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("product-images")
+      .upload(path, bytes, { contentType: ct, upsert: false });
+    if (upErr) throw upErr;
+
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("product-images")
+      .createSignedUrl(path, SIGNED_URL_TTL);
+    if (signErr) throw signErr;
+
+    return { path, url: signed.signedUrl };
+  });
