@@ -271,14 +271,21 @@ function VideosPage() {
             Escolha um produto e gere o primeiro vídeo com narração e legendas
             automáticas.
           </p>
-          <Button
-            onClick={() => setPickerOpen(true)}
-            className="mt-6 bg-gradient-primary shadow-glow hover:opacity-90"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Novo vídeo com IA
-          </Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importar vídeo pronto
+            </Button>
+            <Button
+              onClick={() => setPickerOpen(true)}
+              className="bg-gradient-primary shadow-glow hover:opacity-90"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Novo vídeo com IA
+            </Button>
+          </div>
         </div>
+
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface/50 p-3 backdrop-blur-sm">
