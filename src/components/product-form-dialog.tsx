@@ -185,15 +185,47 @@ export function ProductFormDialog({
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface/40 px-4 py-3">
+            <div className="min-w-[180px] flex-1">
+              <p className="text-sm font-medium">Importar foto do link</p>
+              <p className="text-xs text-muted-foreground">
+                Baixa a foto oficial do produto na Shopee — grátis, sem IA.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={runImport}
+              disabled={importMutation.isPending}
+            >
+              {importMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Importar do link
+            </Button>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="image_url">URL da imagem</Label>
-            <Input
-              id="image_url"
-              type="url"
-              value={form.image_url ?? ""}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              placeholder="https://..."
-            />
+            <div className="flex gap-3">
+              {form.image_url ? (
+                <img
+                  src={form.image_url}
+                  alt="Pré-visualização do produto"
+                  className="h-16 w-16 shrink-0 rounded-lg border border-border object-cover"
+                />
+              ) : null}
+              <Input
+                id="image_url"
+                type="url"
+                value={form.image_url ?? ""}
+                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
