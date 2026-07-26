@@ -15,6 +15,7 @@ import {
   Square,
   Upload,
   ExternalLink,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,12 @@ import { listProducts } from "@/lib/products.functions";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
 import { VideoImportDialog } from "@/components/video-import-dialog";
 import { cn } from "@/lib/utils";
+import {
+  SOCIAL_PLATFORMS,
+  buildCaption,
+  platformInfo,
+  type SocialPlatform,
+} from "@/lib/social-caption";
 
 
 import {
@@ -76,6 +83,7 @@ function VideosPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [platform, setPlatform] = useState<SocialPlatform>("shopee");
 
 
 
@@ -120,13 +128,36 @@ function VideosPage() {
     toast.success(msg);
   };
 
+  const captionFor = async (v: any, p: SocialPlatform = platform) => {
+    const kit = await postCopy({ data: { videoId: v.id } });
+    return buildCaption(p, kit);
+  };
+
   const copyCaption = async (v: any) => {
     try {
-      const kit = await postCopy({ data: { videoId: v.id } });
-      await copyText(kit.text);
+      await copyText(
+        await captionFor(v),
+        `Legenda para ${platformInfo(platform).label} copiada!`,
+      );
     } catch (e: any) {
       toast.error(e?.message ?? "Não foi possível montar a legenda");
     }
+  };
+
+  /** Copia a legenda da plataforma e abre a página de publicação */
+  const postTo = async (v: any, p: SocialPlatform) => {
+    const info = platformInfo(p);
+    const tab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      await copyText(
+        await captionFor(v, p),
+        `Legenda copiada! Cole na publicação do ${info.label}.`,
+      );
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não consegui montar a legenda");
+    }
+    if (tab) tab.location.href = info.uploadUrl;
+    else window.open(info.uploadUrl, "_blank", "noopener,noreferrer");
   };
 
   /** Kit de post: baixa vídeo + capa e copia a legenda com hashtags */
@@ -136,8 +167,8 @@ function VideosPage() {
       const base = safeName(videoLabel(v));
       await downloadUrl(v.url, `${base}.mp4`);
       if (v.thumbnail_url) await downloadUrl(v.thumbnail_url, `${base}-capa.jpg`);
-      const kit = await postCopy({ data: { videoId: v.id } });
-      await copyText(kit.text, "Kit pronto! Vídeo e capa baixados, legenda copiada.");
+      const kit = buildCaption(platform, await postCopy({ data: { videoId: v.id } }));
+      await copyText(kit, "Kit pronto! Vídeo e capa baixados, legenda copiada.");
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao montar o kit");
     } finally {
@@ -169,8 +200,8 @@ function VideosPage() {
     try {
       const parts: string[] = [];
       for (const v of items) {
-        const kit = await postCopy({ data: { videoId: v.id } });
-        parts.push(`— ${videoLabel(v)} —\n${kit.text}`);
+        const kit = buildCaption(platform, await postCopy({ data: { videoId: v.id } }));
+        parts.push(`— ${videoLabel(v)} —\n${kit}`);
       }
       await copyText(parts.join("\n\n"), "Legendas copiadas!");
     } catch (e: any) {
@@ -308,7 +339,22 @@ function VideosPage() {
             <span className="text-xs text-muted-foreground">
               {selected.length} selecionado(s)
             </span>
-            <div className="ml-auto flex flex-wrap gap-2">
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <Select
+                value={platform}
+                onValueChange={(v) => setPlatform(v as SocialPlatform)}
+              >
+                <SelectTrigger className="h-9 w-[190px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOCIAL_PLATFORMS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.emoji} Legenda {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 size="sm"
                 variant="outline"
@@ -343,6 +389,7 @@ function VideosPage() {
                 onToggleSelect={() => toggleSelect(v.id)}
                 busy={busy}
                 onCopyCaption={() => copyCaption(v)}
+                onPost={(p) => postTo(v, p)}
                 onKit={() => downloadKit(v)}
                 onDelete={() => {
                   if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
@@ -375,6 +422,7 @@ function VideoCard({
   selected,
   onToggleSelect,
   onCopyCaption,
+  onPost,
   onKit,
   busy,
 }: {
@@ -383,6 +431,7 @@ function VideoCard({
   selected: boolean;
   onToggleSelect: () => void;
   onCopyCaption: () => void;
+  onPost: (p: SocialPlatform) => void;
   onKit: () => void;
   busy: boolean;
 }) {
@@ -459,6 +508,22 @@ function VideoCard({
           <Package className="mr-2 h-4 w-4" />
           Kit de post
         </Button>
+        <div className="grid grid-cols-3 gap-1">
+          {SOCIAL_PLATFORMS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => onPost(p.id)}
+              title={`Copiar legenda e abrir ${p.label}`}
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-border px-1.5 py-1.5 text-[11px] font-medium transition-colors hover:border-primary/60 hover:text-foreground"
+            >
+              <span>{p.emoji}</span>
+              <span className="truncate">
+                {p.id === "instagram" ? "Reels" : p.id === "shopee" ? "Shopee" : "TikTok"}
+              </span>
+              <Share2 className="h-3 w-3 opacity-60" />
+            </button>
+          ))}
+        </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{video.duration_seconds ? `${video.duration_seconds}s` : ""}</span>
           <div className="flex gap-1">

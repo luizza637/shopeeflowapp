@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Upload, Shield, Sparkles } from "lucide-react";
+import { Loader2, Upload, Shield, Sparkles, Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { saveVideoRecord } from "@/lib/videos.functions";
+import { saveVideoRecord, getPostCopy } from "@/lib/videos.functions";
+import {
+  SOCIAL_PLATFORMS,
+  buildCaption,
+  platformInfo,
+  type SocialPlatform,
+} from "@/lib/social-caption";
+import { Textarea } from "@/components/ui/textarea";
 import { sanitizeVideo, type SanitizeMode } from "@/lib/video-sanitize";
 import { VideoBalloonEditor } from "@/components/video-balloon-editor";
 import { newOverlay, type Overlay } from "@/lib/video-overlays";
@@ -37,6 +44,7 @@ export function VideoImportDialog({
 }) {
   const qc = useQueryClient();
   const saveRec = useServerFn(saveVideoRecord);
+  const postCopy = useServerFn(getPostCopy);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -47,6 +55,9 @@ export function VideoImportDialog({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState("");
+  const [platform, setPlatform] = useState<SocialPlatform>("shopee");
+  const [caption, setCaption] = useState("");
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   const reset = () => {
     setFile(null);
@@ -55,6 +66,8 @@ export function VideoImportDialog({
     setOverlays([]);
     setProgress(0);
     setStep("");
+    setCaption("");
+    setSavedId(null);
   };
 
   const close = () => {
@@ -102,7 +115,7 @@ export function VideoImportDialog({
         });
       if (upErr) throw upErr;
 
-      await saveRec({
+      const saved: any = await saveRec({
         data: {
           productId: productId || undefined,
           title:
@@ -121,14 +134,44 @@ export function VideoImportDialog({
 
       qc.invalidateQueries({ queryKey: ["videos"] });
       toast.success("Vídeo importado, sem metadados e pronto para postar!");
-      reset();
-      onOpenChange(false);
+
+      if (saved?.id) {
+        setSavedId(saved.id);
+        try {
+          const kit = await postCopy({ data: { videoId: saved.id } });
+          const text = buildCaption(platform, kit);
+          setCaption(text);
+          await navigator.clipboard.writeText(text).catch(() => {});
+        } catch {
+          setCaption("");
+        }
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Não consegui importar esse vídeo");
     } finally {
       setBusy(false);
       setStep("");
     }
+  };
+
+  const regenerate = async (p: SocialPlatform) => {
+    setPlatform(p);
+    if (!savedId) return;
+    try {
+      const kit = await postCopy({ data: { videoId: savedId } });
+      setCaption(buildCaption(p, kit));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const publish = (p: SocialPlatform) => {
+    const info = platformInfo(p);
+    if (caption) {
+      navigator.clipboard.writeText(caption).catch(() => {});
+      toast.success(`Legenda copiada! Cole na publicação do ${info.label}.`);
+    }
+    window.open(info.uploadUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -262,9 +305,67 @@ export function VideoImportDialog({
             </div>
           )}
 
+          <div className="space-y-2">
+            <Label>Legenda pronta para</Label>
+            <Select
+              value={platform}
+              onValueChange={(v) => regenerate(v as SocialPlatform)}
+              disabled={busy}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SOCIAL_PLATFORMS.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.emoji} {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Ao importar, a legenda com hashtags é gerada e copiada automaticamente.
+            </p>
+          </div>
+
+          {savedId && (
+            <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
+              <Textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={6}
+                className="text-sm"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(caption);
+                    toast.success("Legenda copiada!");
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copiar legenda
+                </Button>
+                {SOCIAL_PLATFORMS.map((p) => (
+                  <Button
+                    key={p.id}
+                    size="sm"
+                    variant={p.id === platform ? "default" : "outline"}
+                    onClick={() => publish(p.id)}
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Postar no {p.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={close} disabled={busy}>
-              Cancelar
+              {savedId ? "Fechar" : "Cancelar"}
             </Button>
             <Button
               onClick={handleImport}
