@@ -160,26 +160,51 @@ export async function sanitizeVideo(
     const OUT_H =
       mode === "reencode" ? HEIGHT : video.videoHeight || HEIGHT;
 
-    video.currentTime = 0;
+    // O elemento precisa estar no documento e "renderizável", senão alguns
+    // navegadores não decodificam os frames e o resultado sai todo preto.
+    video.style.position = "fixed";
+    video.style.left = "0";
+    video.style.bottom = "0";
+    video.style.width = "2px";
+    video.style.height = "2px";
+    video.style.opacity = "0.01";
+    video.style.pointerEvents = "none";
+    video.style.zIndex = "-1";
+    document.body.appendChild(video);
+
     video.muted = false;
+    await new Promise<void>((resolve) => {
+      const onSeeked = () => resolve();
+      video.onseeked = onSeeked;
+      try {
+        video.currentTime = 0;
+      } catch {
+        resolve();
+      }
+      setTimeout(resolve, 2000);
+    });
+    video.onseeked = null;
 
     const canvas = document.createElement("canvas");
     canvas.width = OUT_W;
     canvas.height = OUT_H;
     const ctx = canvas.getContext("2d", { alpha: false })!;
-    const stream = canvas.captureStream(FPS);
 
     let audioCtx: AudioContext | null = null;
+    let stream: MediaStream;
     try {
       const AC: typeof AudioContext =
         (window as any).AudioContext || (window as any).webkitAudioContext;
       audioCtx = new AC();
+      await audioCtx.resume().catch(() => undefined);
       const source = audioCtx.createMediaElementSource(video);
       const dest = audioCtx.createMediaStreamDestination();
       source.connect(dest);
+      stream = canvas.captureStream(FPS);
       dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
     } catch {
       audioCtx = null;
+      stream = canvas.captureStream(FPS);
     }
 
     const mimeType = pickMime();
@@ -197,10 +222,13 @@ export async function sanitizeVideo(
 
     let thumbnailBase64 = "";
     let raf = 0;
-    const tick = () => {
+    const paint = () => {
       drawCover(ctx, video, opts.fit ?? "cover", OUT_W, OUT_H);
       if (overlays.length)
         drawOverlays(ctx, OUT_W, OUT_H, overlays, video.currentTime);
+    };
+    const tick = () => {
+      paint();
       if (!thumbnailBase64 && video.currentTime > 0.2) {
         thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
       }
@@ -208,15 +236,20 @@ export async function sanitizeVideo(
       raf = requestAnimationFrame(tick);
     };
 
-    recorder.start(1000);
+    // primeiro frame já desenhado antes de começar a gravar
+    paint();
     await video.play();
     tick();
+    recorder.start(1000);
+
 
     await new Promise<void>((resolve) => {
       video.onended = () => resolve();
     });
 
     cancelAnimationFrame(raf);
+    // pequeno respiro pro último frame entrar no arquivo
+    await new Promise((r) => setTimeout(r, 200));
     recorder.stop();
     const blob = await done;
     try {
@@ -224,6 +257,8 @@ export async function sanitizeVideo(
     } catch {
       /* ignore */
     }
+    video.remove();
+
 
     if (!thumbnailBase64) {
       thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
