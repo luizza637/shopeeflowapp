@@ -40,7 +40,7 @@ export function VideoImportDialog({
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [productId, setProductId] = useState<string>("");
-  const [fit, setFit] = useState<"cover" | "contain">("cover");
+  const [mode, setMode] = useState<SanitizeMode>("keep");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState("");
@@ -67,9 +67,13 @@ export function VideoImportDialog({
     setBusy(true);
     setProgress(0);
     try {
-      setStep("Limpando metadados e ajustando 9:16…");
+      setStep(
+        mode === "keep"
+          ? "Limpando metadados (sem alterar o vídeo)…"
+          : "Reprocessando em 9:16…",
+      );
       const result = await sanitizeVideo(file, {
-        fit,
+        mode,
         onProgress: (r) => setProgress(r),
       });
 
