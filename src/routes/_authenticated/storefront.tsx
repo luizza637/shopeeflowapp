@@ -331,7 +331,15 @@ function StorefrontAdmin() {
                     {p.category && (
                       <span className="text-[11px] text-muted-foreground">{p.category}</span>
                     )}
+                    <span className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                      <MousePointerClick className="h-3.5 w-3.5 text-primary" />
+                      {clicks?.byProduct?.[p.id]?.total ?? 0} cliques
+                      <span className="opacity-70">
+                        ({clicks?.byProduct?.[p.id]?.today ?? 0} hoje)
+                      </span>
+                    </span>
                   </div>
+
                   <div className="flex items-center justify-between gap-2">
                     {p.price != null ? (
                       <span className="text-sm font-bold text-primary">
