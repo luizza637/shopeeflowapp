@@ -43,14 +43,35 @@ export const Route = createFileRoute("/_authenticated/videos")({
   component: VideosPage,
 });
 
+async function downloadUrl(url: string, filename: string) {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 4000);
+}
+
+const safeName = (s: string) =>
+  (s || "video").normalize("NFD").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 50) ||
+  "video";
+
 function VideosPage() {
   const list = useServerFn(listVideos);
   const listProds = useServerFn(listProducts);
   const del = useServerFn(deleteVideo);
+  const postCopy = useServerFn(getPostCopy);
   const qc = useQueryClient();
   const [studioProduct, setStudioProduct] = useState<any | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
 
   const { data: videos = [], isLoading } = useQuery({
     queryKey: ["videos"],
