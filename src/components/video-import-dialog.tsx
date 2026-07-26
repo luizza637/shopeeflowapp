@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { saveVideoRecord } from "@/lib/videos.functions";
-import { sanitizeVideo } from "@/lib/video-sanitize";
+import { sanitizeVideo, type SanitizeMode } from "@/lib/video-sanitize";
 
 export function VideoImportDialog({
   open,
@@ -40,7 +40,7 @@ export function VideoImportDialog({
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [productId, setProductId] = useState<string>("");
-  const [fit, setFit] = useState<"cover" | "contain">("cover");
+  const [mode, setMode] = useState<SanitizeMode>("keep");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState("");
@@ -67,9 +67,13 @@ export function VideoImportDialog({
     setBusy(true);
     setProgress(0);
     try {
-      setStep("Limpando metadados e ajustando 9:16…");
+      setStep(
+        mode === "keep"
+          ? "Limpando metadados (sem alterar o vídeo)…"
+          : "Reprocessando em 9:16…",
+      );
       const result = await sanitizeVideo(file, {
-        fit,
+        mode,
         onProgress: (r) => setProgress(r),
       });
 
@@ -130,9 +134,10 @@ export function VideoImportDialog({
           </DialogTitle>
           <DialogDescription>
             Baixou o vídeo em outro app (VidEx, CapCut, galeria)? Traga para cá:
-            o app remove os metadados, ajusta para 9:16 e guarda na sua
-            biblioteca com Kit de Post.
+            por padrão o vídeo é salvo exatamente como está, sem cortes nem
+            perda de qualidade, apenas sem os metadados do arquivo.
           </DialogDescription>
+
         </DialogHeader>
 
         <div className="space-y-4">
@@ -185,19 +190,21 @@ export function VideoImportDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Enquadramento</Label>
+              <Label>Processamento</Label>
               <Select
-                value={fit}
-                onValueChange={(v) => setFit(v as "cover" | "contain")}
+                value={mode}
+                onValueChange={(v) => setMode(v as SanitizeMode)}
                 disabled={busy}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cover">Preencher tela (corta)</SelectItem>
-                  <SelectItem value="contain">
-                    Vídeo inteiro (fundo desfocado)
+                  <SelectItem value="keep">
+                    Manter original (só limpar)
+                  </SelectItem>
+                  <SelectItem value="reencode">
+                    Reprocessar em 9:16
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -207,11 +214,12 @@ export function VideoImportDialog({
           <div className="flex items-start gap-2 rounded-xl border border-border bg-surface/50 p-3 text-xs text-muted-foreground">
             <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span>
-              O vídeo é reprocessado no seu navegador em tempo real — por isso
-              leva mais ou menos a duração do vídeo. Nenhum metadado original
-              (autor, local, aparelho) é mantido.
+              {mode === "keep"
+                ? "O vídeo é enviado igual ao original — mesma duração, resolução e qualidade. Só os dados do arquivo (nome, data, origem) não vão junto."
+                : "O vídeo é reprocessado no navegador em tempo real (leva a duração do vídeo) e forçado para 1080x1920."}
             </span>
           </div>
+
 
           {busy && (
             <div className="space-y-2">
