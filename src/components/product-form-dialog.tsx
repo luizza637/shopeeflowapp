@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -15,9 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Upload } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
 import { importFromShopeeLink } from "@/lib/import-product.functions";
+import { uploadProductPhoto } from "@/lib/images.functions";
+
 
 
 type Product = {
