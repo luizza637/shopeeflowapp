@@ -15,8 +15,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
+import { importFromShopeeLink } from "@/lib/import-product.functions";
+
 
 type Product = {
   id?: string;
@@ -72,6 +74,32 @@ export function ProductFormDialog({
 }) {
   const [form, setForm] = useState<Product>(empty);
   const save = useServerFn(upsertProduct);
+  const importLink = useServerFn(importFromShopeeLink);
+
+  const importMutation = useMutation({
+    mutationFn: (url: string) => importLink({ data: { url } }),
+    onSuccess: (r: any) => {
+      setForm((f) => ({
+        ...f,
+        image_url: r.imageUrl ?? f.image_url,
+        name: f.name?.trim() ? f.name : (r.name ?? ""),
+        price: f.price ?? r.price ?? null,
+        shop_name: f.shop_name?.trim() ? f.shop_name : (r.shopName ?? ""),
+      }));
+      toast.success("Foto importada do link da Shopee");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Não consegui importar do link"),
+  });
+
+  const runImport = () => {
+    const url = (form.url || form.affiliate_url || "").trim();
+    if (!url) {
+      toast.error("Cole primeiro o link da Shopee");
+      return;
+    }
+    importMutation.mutate(url);
+  };
+
 
   useEffect(() => {
     if (open) setForm(product ? { ...empty, ...product } : empty);
@@ -157,15 +185,47 @@ export function ProductFormDialog({
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface/40 px-4 py-3">
+            <div className="min-w-[180px] flex-1">
+              <p className="text-sm font-medium">Importar foto do link</p>
+              <p className="text-xs text-muted-foreground">
+                Baixa a foto oficial do produto na Shopee — grátis, sem IA.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={runImport}
+              disabled={importMutation.isPending}
+            >
+              {importMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Importar do link
+            </Button>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="image_url">URL da imagem</Label>
-            <Input
-              id="image_url"
-              type="url"
-              value={form.image_url ?? ""}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              placeholder="https://..."
-            />
+            <div className="flex gap-3">
+              {form.image_url ? (
+                <img
+                  src={form.image_url}
+                  alt="Pré-visualização do produto"
+                  className="h-16 w-16 shrink-0 rounded-lg border border-border object-cover"
+                />
+              ) : null}
+              <Input
+                id="image_url"
+                type="url"
+                value={form.image_url ?? ""}
+                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
