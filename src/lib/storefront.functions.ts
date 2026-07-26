@@ -119,7 +119,7 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
 
-    // Ranking dos mais clicados (só contagem agregada, nada de dados de visitante)
+    // Ranking dos mais clicados: conta 1 clique por produto/visitante/dia.
     const clickCounts: Record<string, number> = {};
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -127,18 +127,23 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
       since.setDate(since.getDate() - 6);
       const { data: clicks } = await supabaseAdmin
         .from("product_clicks")
-        .select("product_id")
+        .select("id, product_id, visitor_hash, day")
         .eq("profile_id", profile.id)
         .gte("day", since.toISOString().slice(0, 10));
+      const seen = new Set<string>();
       for (const c of clicks ?? []) {
         const id = c.product_id as string;
+        const visitor = (c.visitor_hash as string | null) ?? (c.id as string);
+        const key = `${id}:${c.day as string}:${visitor}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
         clickCounts[id] = (clickCounts[id] ?? 0) + 1;
       }
     } catch {
       /* ranking é opcional */
     }
 
-    // Métricas reais para exibir na vitrine (nada simulado)
+    // Métricas reais para o ranking; avisos visuais de compra não entram nessas contas.
     let viewsToday = 0;
     let clicksTotal = 0;
     try {
@@ -247,11 +252,28 @@ export const trackProductClick = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!product) return { ok: false };
 
+    const visitorHash = data.visitorHash ? data.visitorHash.slice(0, 64) : null;
+    const todayKey = new Date().toISOString().slice(0, 10);
+
+    // Um clique por produto/visitante/dia: duas pessoas diferentes contam 2;
+    // a mesma pessoa clicando várias vezes no mesmo produto não infla o painel.
+    if (visitorHash) {
+      const { data: existing } = await supabaseAdmin
+        .from("product_clicks")
+        .select("id")
+        .eq("product_id", product.id)
+        .eq("profile_id", profile.id)
+        .eq("day", todayKey)
+        .eq("visitor_hash", visitorHash)
+        .maybeSingle();
+      if (existing) return { ok: true, duplicate: true };
+    }
+
     await supabaseAdmin.from("product_clicks").insert({
       product_id: product.id,
       profile_id: profile.id,
       slug: data.slug,
-      visitor_hash: data.visitorHash ? data.visitorHash.slice(0, 64) : null,
+      visitor_hash: visitorHash,
     });
 
     return { ok: true };
@@ -268,20 +290,25 @@ export const getProductClickStats = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("product_clicks")
-      .select("product_id, day")
+      .select("id, product_id, visitor_hash, day")
       .eq("profile_id", userId)
       .gte("day", sinceDay);
     if (error) throw error;
 
     const byProduct: Record<string, { total: number; today: number }> = {};
+    const seen = new Set<string>();
     for (const r of rows ?? []) {
       const id = r.product_id as string;
+      const visitor = (r.visitor_hash as string | null) ?? (r.id as string);
+      const key = `${id}:${r.day as string}:${visitor}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       if (!byProduct[id]) byProduct[id] = { total: 0, today: 0 };
       byProduct[id].total += 1;
       if ((r.day as string) === todayKey) byProduct[id].today += 1;
     }
 
-    const total = (rows ?? []).length;
+    const total = seen.size;
     const today = Object.values(byProduct).reduce((a, v) => a + v.today, 0);
     return { byProduct, total, today };
   });
@@ -306,7 +333,8 @@ export const getStorefrontStats = createServerFn({ method: "GET" })
     for (const r of rows ?? []) {
       const key = r.day as string;
       if (!byDay.has(key)) byDay.set(key, { views: 0, visitors: new Set() });
-      const e = byDay.get(key)!;
+      const e = byDay.get(key);
+      if (!e) continue;
       e.views += 1;
       e.visitors.add((r.visitor_hash as string | null) ?? Math.random().toString());
     }
