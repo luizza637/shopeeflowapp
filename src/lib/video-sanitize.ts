@@ -248,6 +248,8 @@ export async function sanitizeVideo(
     });
 
     cancelAnimationFrame(raf);
+    // pequeno respiro pro último frame entrar no arquivo
+    await new Promise((r) => setTimeout(r, 200));
     recorder.stop();
     const blob = await done;
     try {
@@ -255,6 +257,8 @@ export async function sanitizeVideo(
     } catch {
       /* ignore */
     }
+    video.remove();
+
 
     if (!thumbnailBase64) {
       thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
