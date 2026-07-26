@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -196,10 +196,10 @@ function VideosPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
-            <a href="https://videx.com.br" target="_blank" rel="noopener noreferrer">
+            <Link to="/videx">
               <ExternalLink className="mr-2 h-4 w-4" />
               Abrir VidEx
-            </a>
+            </Link>
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
