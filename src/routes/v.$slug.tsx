@@ -193,7 +193,9 @@ function msUntilMidnight() {
 }
 
 function StorefrontPage() {
-  const { profile, products, clickCounts } = Route.useLoaderData();
+  const { profile, products, clickCounts, viewsToday, clicksTotal } =
+    Route.useLoaderData();
+
   const { slug } = Route.useParams();
   const visitorHash = useVisitorHash();
   const [category, setCategory] = useState<string>("Todos");
@@ -380,7 +382,7 @@ function StorefrontPage() {
           </div>
         </header>
 
-        <LivePurchaseFeed products={list} />
+        <LivePurchaseFeed viewsToday={viewsToday} clicksTotal={clicksTotal} />
 
         {deals.length > 0 && (
           <section className="mt-6 animate-sf-pop-in rounded-3xl border border-primary/30 bg-primary/[0.06] p-4 backdrop-blur">
