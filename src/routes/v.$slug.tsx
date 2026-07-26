@@ -381,9 +381,6 @@ function StorefrontPage() {
 
         <LivePurchaseFeed products={list} />
 
-
-        <Ticker />
-
         {deals.length > 0 && (
           <section className="mt-6 animate-sf-pop-in rounded-3xl border border-primary/30 bg-primary/[0.06] p-4 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-2">
