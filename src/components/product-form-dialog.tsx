@@ -19,6 +19,8 @@ import { Loader2, Download, Upload } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
 import { importFromShopeeLink } from "@/lib/import-product.functions";
 import { uploadProductPhoto } from "@/lib/images.functions";
+import { WebImageSearch } from "@/components/web-image-search";
+
 
 
 
