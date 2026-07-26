@@ -83,6 +83,14 @@ function StorefrontAdmin() {
     refetchInterval: 60_000,
   });
 
+  const loadClicks = useServerFn(getProductClickStats);
+  const { data: clicks } = useQuery({
+    queryKey: ["storefront-clicks"],
+    queryFn: () => loadClicks({}),
+    refetchInterval: 60_000,
+  });
+
+
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [bio, setBio] = useState("");
