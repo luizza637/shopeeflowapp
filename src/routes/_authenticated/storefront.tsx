@@ -150,7 +150,7 @@ function StorefrontAdmin() {
         </p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<Eye className="h-4 w-4" />}
           label="Visitas hoje"
@@ -167,7 +167,13 @@ function StorefrontAdmin() {
           label="Últimos 7 dias"
           value={stats?.last7 ?? 0}
         />
+        <StatCard
+          icon={<MousePointerClick className="h-4 w-4" />}
+          label="Cliques em produtos hoje"
+          value={clicks?.today ?? 0}
+        />
       </section>
+
 
       {!!stats?.series?.length && (
         <section className="rounded-2xl border border-border bg-card p-5">
