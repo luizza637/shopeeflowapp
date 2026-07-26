@@ -333,7 +333,8 @@ export const getStorefrontStats = createServerFn({ method: "GET" })
     for (const r of rows ?? []) {
       const key = r.day as string;
       if (!byDay.has(key)) byDay.set(key, { views: 0, visitors: new Set() });
-      const e = byDay.get(key)!;
+      const e = byDay.get(key);
+      if (!e) continue;
       e.views += 1;
       e.visitors.add((r.visitor_hash as string | null) ?? Math.random().toString());
     }
