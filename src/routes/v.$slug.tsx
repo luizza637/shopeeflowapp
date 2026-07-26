@@ -85,9 +85,11 @@ const TICKER = [
   "🏆 Os mais comprados da semana",
 ];
 
-function Ticker() {
+function Ticker({ className = "mt-6" }: { className?: string }) {
   return (
-    <div className="relative mt-6 overflow-hidden rounded-full border border-primary/25 bg-primary/5 py-2">
+    <div
+      className={`relative overflow-hidden rounded-full border border-primary/25 bg-primary/5 py-2 ${className}`}
+    >
       <div className="flex w-max animate-sf-marquee gap-8 pr-8">
         {[...TICKER, ...TICKER].map((t, i) => (
           <span
@@ -324,7 +326,8 @@ function StorefrontPage() {
             "radial-gradient(60% 60% at 50% 0%, var(--primary) 0%, transparent 70%)",
         }}
       />
-      <div className="relative mx-auto w-full max-w-2xl px-4 pt-16 pb-12">
+      <div className="relative mx-auto w-full max-w-2xl px-4 pt-6 pb-12">
+        <Ticker className="mb-6" />
         <header className="flex animate-sf-pop-in flex-col items-center text-center">
           <ShopeeBadge />
           <div className="mt-4 animate-sf-float">
@@ -378,9 +381,6 @@ function StorefrontPage() {
         </header>
 
         <LivePurchaseFeed products={list} />
-
-
-        <Ticker />
 
         {deals.length > 0 && (
           <section className="mt-6 animate-sf-pop-in rounded-3xl border border-primary/30 bg-primary/[0.06] p-4 backdrop-blur">
