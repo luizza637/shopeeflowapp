@@ -107,7 +107,9 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
       .eq("storefront_published", true)
       .maybeSingle();
 
-    return { profile, products: [] as PublicProduct[], clickCounts: {} as Record<string, number> };
+    if (!profile)
+      return { profile: null, products: [] as PublicProduct[], clickCounts: {} as Record<string, number> };
+
 
     const { data: products } = await supabasePublic
       .from("products")
