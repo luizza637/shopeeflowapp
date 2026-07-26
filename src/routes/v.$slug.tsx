@@ -229,20 +229,33 @@ function StorefrontPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return list.filter((p) => {
-      if (category !== "Todos" && p.category !== category) return false;
-      if (!q) return true;
-      return [p.name, p.category, p.shop_name]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [list, category, query]);
+    return list
+      .filter((p) => {
+        if (category !== "Todos" && p.category !== category) return false;
+        if (!q) return true;
+        return [p.name, p.category, p.shop_name]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q));
+      })
+      // Ranking: mais clicados primeiro (últimos 7 dias)
+      .sort((a, b) => (clicks[b.id] ?? 0) - (clicks[a.id] ?? 0));
+  }, [list, category, query, clicks]);
 
+  // Achadinhos do dia: mais clicados; sem cliques, os de maior desconto
+  const deals = useMemo(() => {
+    const scored = [...list].sort((a, b) => {
+      const c = (clicks[b.id] ?? 0) - (clicks[a.id] ?? 0);
+      if (c !== 0) return c;
+      return (Number(b.discount_percent) || 0) - (Number(a.discount_percent) || 0);
+    });
+    return scored.slice(0, 3);
+  }, [list, clicks]);
 
   if (!profile) return <Empty title="Vitrine não encontrada" />;
 
   const name = profile.storefront_title || profile.display_name || "Meus achados";
   const initials = name.slice(0, 2).toUpperCase();
+
 
   const share = async () => {
     playClickSound();
