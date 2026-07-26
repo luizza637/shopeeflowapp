@@ -339,13 +339,29 @@ function VideosPage() {
 function VideoCard({
   video,
   onDelete,
+  selected,
+  onToggleSelect,
+  onCopyCaption,
+  onKit,
+  busy,
 }: {
   video: any;
   onDelete: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onCopyCaption: () => void;
+  onKit: () => void;
+  busy: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
   return (
-    <div className="group overflow-hidden rounded-2xl border border-border bg-surface/60 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-elevated">
+    <div
+      className={cn(
+        "group overflow-hidden rounded-2xl border bg-surface/60 backdrop-blur-sm transition-all hover:shadow-elevated",
+        selected ? "border-primary shadow-glow" : "border-border hover:border-primary/50",
+      )}
+    >
+
       <div className="relative aspect-[9/16] bg-black">
         {playing ? (
           <video
