@@ -306,9 +306,16 @@ export async function sanitizeVideo(
       thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
     }
 
+    if (!blob.size) {
+      throw new Error(
+        "A gravação saiu vazia. Tente novamente com o vídeo um pouco menor.",
+      );
+    }
+
     return {
       blob,
-      mimeType,
+      mimeType: outType,
+
       durationSeconds: Math.round(duration),
       width: OUT_W,
       height: OUT_H,
