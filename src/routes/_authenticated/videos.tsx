@@ -361,8 +361,24 @@ function VideoCard({
         selected ? "border-primary shadow-glow" : "border-border hover:border-primary/50",
       )}
     >
-
       <div className="relative aspect-[9/16] bg-black">
+        <button
+          onClick={onToggleSelect}
+          className={cn(
+            "absolute left-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-md border backdrop-blur-sm transition-colors",
+            selected
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-white/40 bg-black/40 text-white",
+          )}
+          aria-label={selected ? "Desmarcar vídeo" : "Selecionar vídeo"}
+        >
+          {selected ? (
+            <CheckSquare className="h-4 w-4" />
+          ) : (
+            <Square className="h-4 w-4" />
+          )}
+        </button>
+
         {playing ? (
           <video
             src={video.url}
