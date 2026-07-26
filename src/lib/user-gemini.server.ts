@@ -25,6 +25,19 @@ export async function getUserGeminiKey(
 
 const TEXT_MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash"];
 
+/** Remove chaves que a API do Google não aceita em responseSchema. */
+function sanitizeSchema(input: unknown): any {
+  if (Array.isArray(input)) return input.map(sanitizeSchema);
+  if (!input || typeof input !== "object") return input;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (k === "additionalProperties" || k === "minItems" || k === "maxItems") continue;
+    out[k] = sanitizeSchema(v);
+  }
+  return out;
+}
+
+
 /** Gera JSON estruturado com a chave do usuário. Retorna null quando não deu. */
 export async function geminiJson(
   apiKey: string,
