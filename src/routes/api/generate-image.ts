@@ -66,23 +66,29 @@ function sseError(message: string) {
 
 /**
  * Gera com a chave pessoal do usuário.
- * Retorna `null` quando a cota da chave estourou (429) — nesse caso o chamador
- * cai automaticamente no saldo de IA do app para não travar o usuário.
+ * Retorna `{ response }` em caso de sucesso/erro definitivo, ou `{ reason }`
+ * quando não deu para usar a chave (cota/modelo indisponível) e vale tentar
+ * o saldo de IA do app.
  */
 async function generateWithUserKey(
   apiKey: string,
   prompt: string,
   refs: string[],
-): Promise<Response | null> {
+): Promise<{ response?: Response; reason?: string }> {
   const parts: Array<Record<string, unknown>> = [{ text: prompt }];
   for (const ref of refs) {
     const part = await toInlinePart(ref);
     if (part) parts.push(part);
   }
 
-  const candidates = [GOOGLE_MODEL, "gemini-2.0-flash-preview-image-generation"];
+  const candidates = [
+    GOOGLE_MODEL,
+    "gemini-2.5-flash-image-preview",
+    "gemini-2.0-flash-preview-image-generation",
+  ];
   let res: Response | null = null;
   let lastText = "";
+  let lastStatus = 0;
   for (const model of candidates) {
     res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
@@ -96,22 +102,32 @@ async function generateWithUserKey(
       },
     );
     if (res.ok) break;
+    lastStatus = res.status;
     lastText = await res.text().catch(() => "");
-    console.warn(`[generate-image] modelo ${model} falhou (${res.status}): ${lastText.slice(0, 300)}`);
-    if (res.status !== 404) break; // só tenta outro modelo quando não existe
+    console.warn(
+      `[generate-image] modelo ${model} falhou (${res.status}): ${lastText.slice(0, 300)}`,
+    );
+    // 404 = modelo inexistente para a chave; 429 = sem cota nesse modelo.
+    if (res.status !== 404 && res.status !== 429) break;
+    res = null;
   }
 
   if (!res || !res.ok) {
-    const status = res?.status ?? 0;
-    if (status === 429) {
-      return null; // fallback para o saldo do app
+    if (lastStatus === 429) {
+      return {
+        reason:
+          "Sua chave do Gemini não tem cota para gerar imagens (o modelo de imagens do Google exige faturamento ativo na conta do Google AI Studio).",
+      };
     }
-    if (status === 400 || status === 403) {
-      return sseError("Chave do Gemini inválida ou sem acesso ao modelo de imagens.");
+    if (lastStatus === 400 || lastStatus === 403) {
+      return {
+        response: sseError(
+          "Sua chave do Gemini é inválida ou não tem acesso ao modelo de imagens. Confira a chave em Configurações.",
+        ),
+      };
     }
-    return sseError(`Falha no Gemini (${status}): ${lastText.slice(0, 160)}`);
+    return { reason: `Sua chave do Gemini falhou (${lastStatus}).` };
   }
-
 
   const payload = (await res.json()) as {
     candidates?: Array<{
@@ -122,15 +138,17 @@ async function generateWithUserKey(
     (p) => p.inlineData?.data || p.inline_data?.data,
   );
   const data = b64?.inlineData?.data ?? b64?.inline_data?.data;
-  if (!data) return sseError("O Gemini não retornou nenhuma imagem.");
+  if (!data) return { response: sseError("O Gemini não retornou nenhuma imagem.") };
 
-  return sseResponse(
-    `event: image_generation.completed\ndata: ${JSON.stringify({
-      type: "image_generation.completed",
-      b64_json: data,
-      created_at: Date.now(),
-    })}\n\n`,
-  );
+  return {
+    response: sseResponse(
+      `event: image_generation.completed\ndata: ${JSON.stringify({
+        type: "image_generation.completed",
+        b64_json: data,
+        created_at: Date.now(),
+      })}\n\n`,
+    ),
+  };
 }
 
 export const Route = createFileRoute("/api/generate-image")({
@@ -153,12 +171,14 @@ export const Route = createFileRoute("/api/generate-image")({
 
         // 1) Chave pessoal do usuário (não consome o saldo de IA do workspace).
         const userKey = await getUserGeminiKey(request);
-        let personalQuotaExhausted = false;
+        let personalReason: string | null = null;
         if (userKey) {
           const personal = await generateWithUserKey(userKey, prompt, refs);
-          if (personal) return personal;
-          personalQuotaExhausted = true;
-          // cota da chave pessoal esgotada → segue para o saldo do app
+          if (personal.response) return personal.response;
+          personalReason = personal.reason ?? null;
+          // não deu para usar a chave pessoal → tenta o saldo do app
+        } else {
+          console.warn("[generate-image] nenhuma chave pessoal do Gemini encontrada para o usuário");
         }
 
 
@@ -190,11 +210,11 @@ export const Route = createFileRoute("/api/generate-image")({
           console.error(`[generate-image] gateway falhou (${upstream.status}): ${text.slice(0, 300)}`);
           if (upstream.status === 402) {
             return sseError(
-              personalQuotaExhausted
-                ? "A cota da sua chave do Gemini acabou por hoje e o saldo de IA do app também está esgotado. Tente novamente mais tarde ou use uma chave do Gemini com faturamento ativo."
+              personalReason
+                ? `${personalReason} O saldo de imagens do app também acabou este mês — isso não tem relação com a sua conta, é o saldo compartilhado do aplicativo.`
                 : userKey
-                  ? "Não consegui usar sua chave do Gemini e o saldo de IA do app está esgotado. Confira a chave em Configurações."
-                  : "Saldo de IA do app esgotado. Cadastre sua chave do Gemini em Configurações para continuar gerando imagens.",
+                  ? "Não consegui usar sua chave do Gemini e o saldo de imagens do app (compartilhado) acabou este mês. Confira a chave em Configurações."
+                  : "O saldo de imagens do app (compartilhado, não é da sua conta) acabou este mês. Cadastre sua chave do Gemini em Configurações para continuar gerando imagens.",
             );
           }
           if (upstream.status === 429) {
