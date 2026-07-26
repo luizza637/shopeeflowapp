@@ -138,7 +138,32 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
       /* ranking é opcional */
     }
 
-    return { profile, products: (products ?? []) as PublicProduct[], clickCounts };
+    // Métricas reais para exibir na vitrine (nada simulado)
+    let viewsToday = 0;
+    let clicksTotal = 0;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const { data: views } = await supabaseAdmin
+        .from("storefront_views")
+        .select("visitor_hash")
+        .eq("profile_id", profile.id)
+        .eq("day", todayKey);
+      const uniq = new Set<string>();
+      for (const v of views ?? []) uniq.add((v.visitor_hash as string | null) ?? "anon");
+      viewsToday = uniq.size;
+      clicksTotal = Object.values(clickCounts).reduce((a, b) => a + b, 0);
+    } catch {
+      /* métricas são opcionais */
+    }
+
+    return {
+      profile,
+      products: (products ?? []) as PublicProduct[],
+      clickCounts,
+      viewsToday,
+      clicksTotal,
+    };
   });
 
 
@@ -165,15 +190,31 @@ export const trackStorefrontView = createServerFn({ method: "POST" })
     // Registro de visitas é feito somente pelo servidor (service role):
     // clientes não têm permissão de inserir e não podem falsificar métricas.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const visitorHash = data.visitorHash ? data.visitorHash.slice(0, 64) : null;
+    const todayKey = new Date().toISOString().slice(0, 10);
+
+    // Uma visita por visitante por dia: recarregar a página não infla o número.
+    if (visitorHash) {
+      const { data: existing } = await supabaseAdmin
+        .from("storefront_views")
+        .select("id")
+        .eq("profile_id", profile.id)
+        .eq("day", todayKey)
+        .eq("visitor_hash", visitorHash)
+        .maybeSingle();
+      if (existing) return { ok: true, duplicate: true };
+    }
+
     await supabaseAdmin.from("storefront_views").insert({
       profile_id: profile.id,
       slug: data.slug,
-      visitor_hash: data.visitorHash ? data.visitorHash.slice(0, 64) : null,
+      visitor_hash: visitorHash,
       referrer: data.referrer ? data.referrer.slice(0, 300) : null,
     });
 
     return { ok: true };
   });
+
 
 export const trackProductClick = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
