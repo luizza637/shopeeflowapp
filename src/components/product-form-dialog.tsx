@@ -237,8 +237,9 @@ export function ProductFormDialog({
             </div>
             <WebImageSearch
               defaultQuery={form.name ?? ""}
-              onPicked={(url) => setForm((f) => ({ ...f, image_url: url }))}
+              onPicked={(url: string) => setForm((f) => ({ ...f, image_url: url }))}
             />
+
 
             <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
               <div className="min-w-[180px] flex-1">
