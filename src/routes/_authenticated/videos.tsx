@@ -2,12 +2,25 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Video, Trash2, Download, Loader2, Sparkles, Play } from "lucide-react";
+import {
+  Video,
+  Trash2,
+  Download,
+  Loader2,
+  Sparkles,
+  Play,
+  Copy,
+  Package,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { listVideos, deleteVideo } from "@/lib/videos.functions";
+import { listVideos, deleteVideo, getPostCopy } from "@/lib/videos.functions";
 import { listProducts } from "@/lib/products.functions";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
+import { cn } from "@/lib/utils";
+
 import {
   Select,
   SelectContent,
