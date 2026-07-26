@@ -33,9 +33,13 @@ async function toInlinePart(url: string): Promise<InlinePart | null> {
 async function getUserGeminiKey(request: Request): Promise<string | null> {
   const auth = request.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return null;
-  const url = process.env.SUPABASE_URL;
-  const anon = process.env.SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !anon) return null;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anon =
+    process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !anon) {
+    console.warn("[generate-image] variáveis do Supabase ausentes no servidor");
+    return null;
+  }
   try {
     const res = await fetch(`${url}/rest/v1/user_ai_keys?select=gemini_api_key&limit=1`, {
       headers: { apikey: anon, Authorization: auth },
@@ -76,28 +80,36 @@ async function generateWithUserKey(
     if (part) parts.push(part);
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts }],
-        generationConfig: { responseModalities: ["IMAGE"] },
-      }),
-    },
-  );
+  const candidates = [GOOGLE_MODEL, "gemini-2.0-flash-preview-image-generation"];
+  let res: Response | null = null;
+  let lastText = "";
+  for (const model of candidates) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: { responseModalities: ["IMAGE"] },
+        }),
+      },
+    );
+    if (res.ok) break;
+    lastText = await res.text().catch(() => "");
+    console.warn(`[generate-image] modelo ${model} falhou (${res.status}): ${lastText.slice(0, 300)}`);
+    if (res.status !== 404) break; // só tenta outro modelo quando não existe
+  }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    if (res.status === 429) {
-      console.warn("[generate-image] cota da chave pessoal do Gemini esgotada:", text.slice(0, 400));
+  if (!res || !res.ok) {
+    const status = res?.status ?? 0;
+    if (status === 429) {
       return null; // fallback para o saldo do app
     }
-    if (res.status === 400 || res.status === 403) {
+    if (status === 400 || status === 403) {
       return sseError("Chave do Gemini inválida ou sem acesso ao modelo de imagens.");
     }
-    return sseError(`Falha no Gemini (${res.status}): ${text.slice(0, 160)}`);
+    return sseError(`Falha no Gemini (${status}): ${lastText.slice(0, 160)}`);
   }
 
 
@@ -141,16 +153,18 @@ export const Route = createFileRoute("/api/generate-image")({
 
         // 1) Chave pessoal do usuário (não consome o saldo de IA do workspace).
         const userKey = await getUserGeminiKey(request);
+        let personalQuotaExhausted = false;
         if (userKey) {
           const personal = await generateWithUserKey(userKey, prompt, refs);
           if (personal) return personal;
+          personalQuotaExhausted = true;
           // cota da chave pessoal esgotada → segue para o saldo do app
         }
 
 
         // 2) Fallback: gateway de IA da Lovable.
         const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        if (!key) return sseError("Serviço de imagens indisponível (chave do app ausente).");
 
         const content: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
         for (const url of refs) {
@@ -173,7 +187,20 @@ export const Route = createFileRoute("/api/generate-image")({
 
         if (!upstream.ok || !upstream.body) {
           const text = await upstream.text().catch(() => "");
-          return new Response(text || "Upstream error", { status: upstream.status });
+          console.error(`[generate-image] gateway falhou (${upstream.status}): ${text.slice(0, 300)}`);
+          if (upstream.status === 402) {
+            return sseError(
+              personalQuotaExhausted
+                ? "A cota da sua chave do Gemini acabou por hoje e o saldo de IA do app também está esgotado. Tente novamente mais tarde ou use uma chave do Gemini com faturamento ativo."
+                : userKey
+                  ? "Não consegui usar sua chave do Gemini e o saldo de IA do app está esgotado. Confira a chave em Configurações."
+                  : "Saldo de IA do app esgotado. Cadastre sua chave do Gemini em Configurações para continuar gerando imagens.",
+            );
+          }
+          if (upstream.status === 429) {
+            return sseError("Muitas requisições agora. Aguarde alguns instantes e tente de novo.");
+          }
+          return sseError(`Falha na geração da imagem (${upstream.status}).`);
         }
 
         return new Response(upstream.body, {
