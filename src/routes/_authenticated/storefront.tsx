@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Users,
   TrendingUp,
+  MousePointerClick,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import {
   updateStorefront,
   setProductPublic,
   getStorefrontStats,
+  getProductClickStats,
 } from "@/lib/storefront.functions";
 import { generateCta } from "@/lib/product-cta";
 import { cn } from "@/lib/utils";
