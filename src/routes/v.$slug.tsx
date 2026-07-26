@@ -607,6 +607,31 @@ function StorefrontPage() {
                   </div>
                 </div>
               </Wrapper>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => shareOnWhatsApp(p)}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 py-1.5 text-[11px] font-bold text-primary transition hover:scale-[1.02] hover:bg-primary/20 active:scale-95"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => shareProduct(p)}
+                  aria-label={`Compartilhar ${p.name}`}
+                  className="inline-flex h-8 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:scale-105 hover:text-foreground"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                </button>
+                {rankClicks > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">
+                    <Flame className="h-3 w-3 text-primary" />
+                    {rankClicks}
+                  </span>
+                )}
+              </div>
+              </div>
+
             );
           })}
         </section>
