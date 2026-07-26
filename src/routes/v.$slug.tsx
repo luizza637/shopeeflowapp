@@ -85,9 +85,11 @@ const TICKER = [
   "🏆 Os mais comprados da semana",
 ];
 
-function Ticker() {
+function Ticker({ className = "mt-6" }: { className?: string }) {
   return (
-    <div className="relative mt-6 overflow-hidden rounded-full border border-primary/25 bg-primary/5 py-2">
+    <div
+      className={`relative overflow-hidden rounded-full border border-primary/25 bg-primary/5 py-2 ${className}`}
+    >
       <div className="flex w-max animate-sf-marquee gap-8 pr-8">
         {[...TICKER, ...TICKER].map((t, i) => (
           <span
