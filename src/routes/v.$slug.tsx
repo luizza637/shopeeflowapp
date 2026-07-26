@@ -324,7 +324,7 @@ function StorefrontPage() {
             "radial-gradient(60% 60% at 50% 0%, var(--primary) 0%, transparent 70%)",
         }}
       />
-      <div className="relative mx-auto w-full max-w-2xl px-4 pt-10">
+      <div className="relative mx-auto w-full max-w-2xl px-4 pt-10 pb-28">
         <header className="flex animate-sf-pop-in flex-col items-center text-center">
           <ShopeeBadge />
           <div className="mt-4 animate-sf-float">
@@ -398,7 +398,7 @@ function StorefrontPage() {
                 return (
                   <div
                     key={`deal-${p.id}`}
-                    className="w-40 shrink-0 rounded-2xl border border-border bg-card p-2.5 transition hover:-translate-y-1 hover:border-primary/60"
+                    className="flex w-40 shrink-0 flex-col rounded-2xl border border-border bg-card p-2.5 transition hover:-translate-y-1 hover:border-primary/60"
                   >
                     <a
                       {...(href
@@ -408,8 +408,9 @@ function StorefrontPage() {
                         playClickSound();
                         registerClick(p);
                       }}
-                      className="block"
+                      className="block flex-1"
                     >
+
                       <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
                         {p.image_url ? (
                           <img
