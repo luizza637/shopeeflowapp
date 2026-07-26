@@ -15,8 +15,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
+import { importFromShopeeLink } from "@/lib/import-product.functions";
+
 
 type Product = {
   id?: string;
