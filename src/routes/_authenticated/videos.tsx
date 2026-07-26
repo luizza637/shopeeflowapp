@@ -417,9 +417,25 @@ function VideoCard({
         <p className="line-clamp-2 text-sm font-medium">
           {video.title ?? video.products?.name ?? "Sem título"}
         </p>
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={onKit}
+          className="w-full bg-gradient-primary shadow-glow hover:opacity-90"
+        >
+          <Package className="mr-2 h-4 w-4" />
+          Kit de post
+        </Button>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{video.duration_seconds ? `${video.duration_seconds}s` : ""}</span>
           <div className="flex gap-1">
+            <button
+              onClick={onCopyCaption}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground"
+              title="Copiar legenda + hashtags"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
             <a
               href={video.url}
               download
@@ -437,6 +453,7 @@ function VideoCard({
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );
