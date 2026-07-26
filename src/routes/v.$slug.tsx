@@ -514,21 +514,21 @@ function StorefrontPage() {
             const Wrapper = href ? "a" : "div";
             const cta = generateCta(p);
             const badges = getProductBadges(p);
+            const rankClicks = clicks[p.id] ?? 0;
             return (
+              <div key={`${category}-${p.id}`} className="flex flex-col gap-1.5">
               <Wrapper
-                key={`${category}-${p.id}`}
                 {...(href
                   ? { href, target: "_blank", rel: "noopener noreferrer sponsored" }
                   : {})}
                 onClick={() => {
                   playClickSound();
-                  trackProductClick({
-                    data: { slug, productId: p.id, visitorHash: visitorHash ?? undefined },
-                  }).catch(() => {});
+                  registerClick(p);
                 }}
                 style={{ animationDelay: `${Math.min(i, 12) * 60}ms` }}
                 className="group flex animate-sf-pop-in gap-3 hover:animate-none motion-safe:animate-sf-card-pulse rounded-2xl border border-border bg-card p-3 transition duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_50px_-24px_var(--primary)] active:scale-[0.98] sm:flex-col"
               >
+
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-auto sm:w-full sm:aspect-square">
                   {p.image_url ? (
                     <img
