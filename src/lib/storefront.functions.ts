@@ -107,7 +107,9 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
       .eq("storefront_published", true)
       .maybeSingle();
 
-    if (!profile) return { profile: null, products: [] as PublicProduct[] };
+    if (!profile)
+      return { profile: null, products: [] as PublicProduct[], clickCounts: {} as Record<string, number> };
+
 
     const { data: products } = await supabasePublic
       .from("products")
@@ -117,8 +119,28 @@ export const getPublicStorefront = createServerFn({ method: "GET" })
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
 
-    return { profile, products: (products ?? []) as PublicProduct[] };
+    // Ranking dos mais clicados (só contagem agregada, nada de dados de visitante)
+    const clickCounts: Record<string, number> = {};
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const since = new Date();
+      since.setDate(since.getDate() - 6);
+      const { data: clicks } = await supabaseAdmin
+        .from("product_clicks")
+        .select("product_id")
+        .eq("profile_id", profile.id)
+        .gte("day", since.toISOString().slice(0, 10));
+      for (const c of clicks ?? []) {
+        const id = c.product_id as string;
+        clickCounts[id] = (clickCounts[id] ?? 0) + 1;
+      }
+    } catch {
+      /* ranking é opcional */
+    }
+
+    return { profile, products: (products ?? []) as PublicProduct[], clickCounts };
   });
+
 
 export const trackStorefrontView = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>

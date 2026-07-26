@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 const SHOPEE_COUPONS_URL =
   "https://shopee.com.br/m/cupom-de-desconto?mmp_pid=an_18377100565&uls_trackid=564gujhm007g&gad_source=1&gad_campaignid=22786855170&gbraid=0AAAAACoEtRlOl-q6u7FIhC0-EDjjU09pm&gclid=CjwKCAjwvZHTBhAlEiwA1ug5P2Pq3fNqMZt11M6hv369aFi-BelAdFiuDT0ZnNJLhx5W6zod7Zl47BoCoJgQAvD_BwE";
-import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X, Ticket } from "lucide-react";
+import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X, Ticket, Timer, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,15 +169,38 @@ function useVisitorHash() {
 }
 
 
+/** Contador até a virada do dia (ofertas do dia) */
+function useCountdown() {
+  const [left, setLeft] = useState<number>(() => msUntilMidnight());
+  useEffect(() => {
+    const t = setInterval(() => setLeft(msUntilMidnight()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const total = Math.max(0, Math.floor(left / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2, "0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function msUntilMidnight() {
+  const now = new Date();
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return end.getTime() - now.getTime();
+}
+
 function StorefrontPage() {
-  const { profile, products } = Route.useLoaderData();
+  const { profile, products, clickCounts } = Route.useLoaderData();
   const { slug } = Route.useParams();
   const visitorHash = useVisitorHash();
   const [category, setCategory] = useState<string>("Todos");
   const [query, setQuery] = useState("");
+  const countdown = useCountdown();
 
-
+  const clicks = (clickCounts ?? {}) as Record<string, number>;
   const list = (products ?? []) as PublicProduct[];
+
 
   useEffect(() => {
     if (!profile || !visitorHash) return;
@@ -206,20 +229,33 @@ function StorefrontPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return list.filter((p) => {
-      if (category !== "Todos" && p.category !== category) return false;
-      if (!q) return true;
-      return [p.name, p.category, p.shop_name]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [list, category, query]);
+    return list
+      .filter((p) => {
+        if (category !== "Todos" && p.category !== category) return false;
+        if (!q) return true;
+        return [p.name, p.category, p.shop_name]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q));
+      })
+      // Ranking: mais clicados primeiro (últimos 7 dias)
+      .sort((a, b) => (clicks[b.id] ?? 0) - (clicks[a.id] ?? 0));
+  }, [list, category, query, clicks]);
 
+  // Achadinhos do dia: mais clicados; sem cliques, os de maior desconto
+  const deals = useMemo(() => {
+    const scored = [...list].sort((a, b) => {
+      const c = (clicks[b.id] ?? 0) - (clicks[a.id] ?? 0);
+      if (c !== 0) return c;
+      return (Number(b.discount_percent) || 0) - (Number(a.discount_percent) || 0);
+    });
+    return scored.slice(0, 3);
+  }, [list, clicks]);
 
   if (!profile) return <Empty title="Vitrine não encontrada" />;
 
   const name = profile.storefront_title || profile.display_name || "Meus achados";
   const initials = name.slice(0, 2).toUpperCase();
+
 
   const share = async () => {
     playClickSound();
@@ -235,6 +271,47 @@ function StorefrontPage() {
     await navigator.clipboard.writeText(url);
     toast.success("Link copiado!");
   };
+
+  const registerClick = (p: PublicProduct) => {
+    trackProductClick({
+      data: { slug, productId: p.id, visitorHash: visitorHash ?? undefined },
+    }).catch(() => {});
+  };
+
+  const productLink = (p: PublicProduct) =>
+    p.affiliate_url || p.url || (typeof window !== "undefined" ? window.location.href : "");
+
+  const productMessage = (p: PublicProduct) =>
+    `😍 Olha esse achadinho: ${p.name}${
+      p.price != null ? ` — só ${brl(Number(p.price))}` : ""
+    }\n${productLink(p)}`;
+
+  const shareOnWhatsApp = (p: PublicProduct) => {
+    playClickSound();
+    registerClick(p);
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(productMessage(p))}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  const shareProduct = async (p: PublicProduct) => {
+    playClickSound();
+    const text = productMessage(p);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: p.name, text, url: productLink(p) });
+        return;
+      } catch {
+        /* cancelado */
+      }
+    }
+    await navigator.clipboard.writeText(text);
+    toast.success("Link do produto copiado!");
+  };
+
+
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-background pb-16">
@@ -305,6 +382,76 @@ function StorefrontPage() {
 
         <Ticker />
 
+        {deals.length > 0 && (
+          <section className="mt-6 animate-sf-pop-in rounded-3xl border border-primary/30 bg-primary/[0.06] p-4 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-primary">
+                <Flame className="h-4 w-4 animate-sf-wiggle" /> Achadinhos do dia
+              </h2>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold tabular-nums text-primary-foreground">
+                <Timer className="h-3.5 w-3.5" /> termina em {countdown}
+              </span>
+            </div>
+            <div className="mt-3 -mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {deals.map((p, i) => {
+                const href = p.affiliate_url || p.url || undefined;
+                return (
+                  <div
+                    key={`deal-${p.id}`}
+                    className="w-40 shrink-0 rounded-2xl border border-border bg-card p-2.5 transition hover:-translate-y-1 hover:border-primary/60"
+                  >
+                    <a
+                      {...(href
+                        ? { href, target: "_blank", rel: "noopener noreferrer sponsored" }
+                        : {})}
+                      onClick={() => {
+                        playClickSound();
+                        registerClick(p);
+                      }}
+                      className="block"
+                    >
+                      <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                        {p.image_url ? (
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          {i === 0 ? "🥇 Top 1" : `#${i + 1}`}
+                        </span>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-xs font-medium leading-snug">
+                        {p.name}
+                      </p>
+                      {p.price != null && (
+                        <p className="mt-1 text-sm font-bold text-primary">
+                          {brl(Number(p.price))}
+                        </p>
+                      )}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => shareOnWhatsApp(p)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-primary/40 bg-primary/10 py-1 text-[11px] font-semibold text-primary transition hover:bg-primary/20"
+                    >
+                      <MessageCircle className="h-3 w-3" /> Enviar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+
+
         <div className="relative mt-6 animate-sf-pop-in">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -367,21 +514,21 @@ function StorefrontPage() {
             const Wrapper = href ? "a" : "div";
             const cta = generateCta(p);
             const badges = getProductBadges(p);
+            const rankClicks = clicks[p.id] ?? 0;
             return (
+              <div key={`${category}-${p.id}`} className="flex flex-col gap-1.5">
               <Wrapper
-                key={`${category}-${p.id}`}
                 {...(href
                   ? { href, target: "_blank", rel: "noopener noreferrer sponsored" }
                   : {})}
                 onClick={() => {
                   playClickSound();
-                  trackProductClick({
-                    data: { slug, productId: p.id, visitorHash: visitorHash ?? undefined },
-                  }).catch(() => {});
+                  registerClick(p);
                 }}
                 style={{ animationDelay: `${Math.min(i, 12) * 60}ms` }}
                 className="group flex animate-sf-pop-in gap-3 hover:animate-none motion-safe:animate-sf-card-pulse rounded-2xl border border-border bg-card p-3 transition duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_50px_-24px_var(--primary)] active:scale-[0.98] sm:flex-col"
               >
+
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-auto sm:w-full sm:aspect-square">
                   {p.image_url ? (
                     <img
@@ -460,6 +607,31 @@ function StorefrontPage() {
                   </div>
                 </div>
               </Wrapper>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => shareOnWhatsApp(p)}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 py-1.5 text-[11px] font-bold text-primary transition hover:scale-[1.02] hover:bg-primary/20 active:scale-95"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => shareProduct(p)}
+                  aria-label={`Compartilhar ${p.name}`}
+                  className="inline-flex h-8 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:scale-105 hover:text-foreground"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                </button>
+                {rankClicks > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">
+                    <Flame className="h-3 w-3 text-primary" />
+                    {rankClicks}
+                  </span>
+                )}
+              </div>
+              </div>
+
             );
           })}
         </section>

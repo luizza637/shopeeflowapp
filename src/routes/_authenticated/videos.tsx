@@ -2,12 +2,25 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Video, Trash2, Download, Loader2, Sparkles, Play } from "lucide-react";
+import {
+  Video,
+  Trash2,
+  Download,
+  Loader2,
+  Sparkles,
+  Play,
+  Copy,
+  Package,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { listVideos, deleteVideo } from "@/lib/videos.functions";
+import { listVideos, deleteVideo, getPostCopy } from "@/lib/videos.functions";
 import { listProducts } from "@/lib/products.functions";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
+import { cn } from "@/lib/utils";
+
 import {
   Select,
   SelectContent,
@@ -30,14 +43,35 @@ export const Route = createFileRoute("/_authenticated/videos")({
   component: VideosPage,
 });
 
+async function downloadUrl(url: string, filename: string) {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 4000);
+}
+
+const safeName = (s: string) =>
+  (s || "video").normalize("NFD").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 50) ||
+  "video";
+
 function VideosPage() {
   const list = useServerFn(listVideos);
   const listProds = useServerFn(listProducts);
   const del = useServerFn(deleteVideo);
+  const postCopy = useServerFn(getPostCopy);
   const qc = useQueryClient();
   const [studioProduct, setStudioProduct] = useState<any | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
 
   const { data: videos = [], isLoading } = useQuery({
     queryKey: ["videos"],
@@ -69,6 +103,78 @@ function VideosPage() {
     setStudioProduct(p);
     setPickerOpen(false);
   };
+
+  const toggleSelect = (id: string) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const videoLabel = (v: any) => v.title ?? v.products?.name ?? "video";
+
+  const copyText = async (text: string, msg = "Legenda copiada!") => {
+    await navigator.clipboard.writeText(text);
+    toast.success(msg);
+  };
+
+  const copyCaption = async (v: any) => {
+    try {
+      const kit = await postCopy({ data: { videoId: v.id } });
+      await copyText(kit.text);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível montar a legenda");
+    }
+  };
+
+  /** Kit de post: baixa vídeo + capa e copia a legenda com hashtags */
+  const downloadKit = async (v: any) => {
+    setBusy(true);
+    try {
+      const base = safeName(videoLabel(v));
+      await downloadUrl(v.url, `${base}.mp4`);
+      if (v.thumbnail_url) await downloadUrl(v.thumbnail_url, `${base}-capa.jpg`);
+      const kit = await postCopy({ data: { videoId: v.id } });
+      await copyText(kit.text, "Kit pronto! Vídeo e capa baixados, legenda copiada.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao montar o kit");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const downloadSelected = async () => {
+    const items = videos.filter((v: any) => selected.includes(v.id));
+    if (!items.length) return;
+    setBusy(true);
+    try {
+      for (const v of items) {
+        await downloadUrl(v.url, `${safeName(videoLabel(v))}.mp4`);
+        await new Promise((r) => setTimeout(r, 700));
+      }
+      toast.success(`${items.length} vídeo(s) baixado(s)`);
+    } catch {
+      toast.error("Alguns downloads falharam");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copySelectedCaptions = async () => {
+    const items = videos.filter((v: any) => selected.includes(v.id));
+    if (!items.length) return;
+    setBusy(true);
+    try {
+      const parts: string[] = [];
+      for (const v of items) {
+        const kit = await postCopy({ data: { videoId: v.id } });
+        parts.push(`— ${videoLabel(v)} —\n${kit.text}`);
+      }
+      await copyText(parts.join("\n\n"), "Legendas copiadas!");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao copiar legendas");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -155,18 +261,72 @@ function VideosPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {videos.map((v: any) => (
-            <VideoCard
-              key={v.id}
-              video={v}
-              onDelete={() => {
-                if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
-              }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface/50 p-3 backdrop-blur-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setSelected((s) =>
+                  s.length === videos.length ? [] : videos.map((v: any) => v.id),
+                )
+              }
+            >
+              {selected.length === videos.length && videos.length > 0 ? (
+                <CheckSquare className="mr-2 h-4 w-4" />
+              ) : (
+                <Square className="mr-2 h-4 w-4" />
+              )}
+              Selecionar tudo
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {selected.length} selecionado(s)
+            </span>
+            <div className="ml-auto flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!selected.length || busy}
+                onClick={copySelectedCaptions}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copiar legendas
+              </Button>
+              <Button
+                size="sm"
+                disabled={!selected.length || busy}
+                onClick={downloadSelected}
+                className="bg-gradient-primary shadow-glow hover:opacity-90"
+              >
+                {busy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Baixar selecionados
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {videos.map((v: any) => (
+              <VideoCard
+                key={v.id}
+                video={v}
+                selected={selected.includes(v.id)}
+                onToggleSelect={() => toggleSelect(v.id)}
+                busy={busy}
+                onCopyCaption={() => copyCaption(v)}
+                onKit={() => downloadKit(v)}
+                onDelete={() => {
+                  if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
+
 
       <VideoStudioDialog
         product={studioProduct}
@@ -179,14 +339,46 @@ function VideosPage() {
 function VideoCard({
   video,
   onDelete,
+  selected,
+  onToggleSelect,
+  onCopyCaption,
+  onKit,
+  busy,
 }: {
   video: any;
   onDelete: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onCopyCaption: () => void;
+  onKit: () => void;
+  busy: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
   return (
-    <div className="group overflow-hidden rounded-2xl border border-border bg-surface/60 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-elevated">
+    <div
+      className={cn(
+        "group overflow-hidden rounded-2xl border bg-surface/60 backdrop-blur-sm transition-all hover:shadow-elevated",
+        selected ? "border-primary shadow-glow" : "border-border hover:border-primary/50",
+      )}
+    >
       <div className="relative aspect-[9/16] bg-black">
+        <button
+          onClick={onToggleSelect}
+          className={cn(
+            "absolute left-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-md border backdrop-blur-sm transition-colors",
+            selected
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-white/40 bg-black/40 text-white",
+          )}
+          aria-label={selected ? "Desmarcar vídeo" : "Selecionar vídeo"}
+        >
+          {selected ? (
+            <CheckSquare className="h-4 w-4" />
+          ) : (
+            <Square className="h-4 w-4" />
+          )}
+        </button>
+
         {playing ? (
           <video
             src={video.url}
@@ -225,9 +417,25 @@ function VideoCard({
         <p className="line-clamp-2 text-sm font-medium">
           {video.title ?? video.products?.name ?? "Sem título"}
         </p>
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={onKit}
+          className="w-full bg-gradient-primary shadow-glow hover:opacity-90"
+        >
+          <Package className="mr-2 h-4 w-4" />
+          Kit de post
+        </Button>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{video.duration_seconds ? `${video.duration_seconds}s` : ""}</span>
           <div className="flex gap-1">
+            <button
+              onClick={onCopyCaption}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground"
+              title="Copiar legenda + hashtags"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
             <a
               href={video.url}
               download
@@ -245,6 +453,7 @@ function VideoCard({
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );
