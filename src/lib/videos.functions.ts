@@ -10,12 +10,68 @@ export const listVideos = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("videos")
-      .select("*, products(name, image_url)")
+      .select("*, products(name, image_url), ai_generations(caption, hashtags, title)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data ?? [];
   });
+
+/** Legenda + hashtags prontas para publicar (kit de post) */
+export const getPostCopy = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ videoId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: video, error } = await supabase
+      .from("videos")
+      .select("id, title, product_id, generation_id, products(name, url, affiliate_url)")
+      .eq("id", data.videoId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!video) throw new Error("Vídeo não encontrado");
+
+    let gen: { caption: string | null; hashtags: string | null } | null = null;
+    if (video.generation_id) {
+      const { data: g } = await supabase
+        .from("ai_generations")
+        .select("caption, hashtags")
+        .eq("id", video.generation_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      gen = g ?? null;
+    }
+    if (!gen && video.product_id) {
+      const { data: g } = await supabase
+        .from("ai_generations")
+        .select("caption, hashtags")
+        .eq("product_id", video.product_id)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      gen = g ?? null;
+    }
+
+    const product = (video as any).products as
+      | { name: string; url: string | null; affiliate_url: string | null }
+      | null;
+    const link = product?.affiliate_url || product?.url || "";
+    const caption = gen?.caption?.trim() || video.title || product?.name || "";
+    const hashtags =
+      gen?.hashtags?.trim() ||
+      "#achadinhos #shopee #achadinhosshopee #promocao #ofertas";
+
+    const text = [caption, link ? `\n🛒 Link: ${link}` : "", `\n${hashtags}`]
+      .filter(Boolean)
+      .join("\n");
+
+    return { caption, hashtags, link, text };
+  });
+
 
 const SaveInput = z.object({
   productId: z.string().uuid().optional(),
