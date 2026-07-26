@@ -180,7 +180,43 @@ export function VideoBalloonEditor({
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {o.kind === "text" && (
+            <div className="flex flex-wrap gap-1.5">
+              {PHRASE_PRESETS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => update(o.id, { text: p })}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                    o.text === p
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <Select
+              value={o.anim ?? "bounce"}
+              disabled={disabled}
+              onValueChange={(v) => update(o.id, { anim: v as BalloonAnim })}
+            >
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BALLOON_ANIMS.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select
               value={o.style}
               disabled={disabled}
