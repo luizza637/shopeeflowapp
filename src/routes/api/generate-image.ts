@@ -33,9 +33,13 @@ async function toInlinePart(url: string): Promise<InlinePart | null> {
 async function getUserGeminiKey(request: Request): Promise<string | null> {
   const auth = request.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return null;
-  const url = process.env.SUPABASE_URL;
-  const anon = process.env.SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !anon) return null;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anon =
+    process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !anon) {
+    console.warn("[generate-image] variáveis do Supabase ausentes no servidor");
+    return null;
+  }
   try {
     const res = await fetch(`${url}/rest/v1/user_ai_keys?select=gemini_api_key&limit=1`, {
       headers: { apikey: anon, Authorization: auth },
