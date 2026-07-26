@@ -13,13 +13,17 @@ import {
   Package,
   CheckSquare,
   Square,
+  Upload,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { listVideos, deleteVideo, getPostCopy } from "@/lib/videos.functions";
 import { listProducts } from "@/lib/products.functions";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
+import { VideoImportDialog } from "@/components/video-import-dialog";
 import { cn } from "@/lib/utils";
+
 
 import {
   Select,
