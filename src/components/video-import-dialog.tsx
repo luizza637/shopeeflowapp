@@ -189,19 +189,21 @@ export function VideoImportDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Enquadramento</Label>
+              <Label>Processamento</Label>
               <Select
-                value={fit}
-                onValueChange={(v) => setFit(v as "cover" | "contain")}
+                value={mode}
+                onValueChange={(v) => setMode(v as SanitizeMode)}
                 disabled={busy}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cover">Preencher tela (corta)</SelectItem>
-                  <SelectItem value="contain">
-                    Vídeo inteiro (fundo desfocado)
+                  <SelectItem value="keep">
+                    Manter original (só limpar)
+                  </SelectItem>
+                  <SelectItem value="reencode">
+                    Reprocessar em 9:16
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -211,11 +213,12 @@ export function VideoImportDialog({
           <div className="flex items-start gap-2 rounded-xl border border-border bg-surface/50 p-3 text-xs text-muted-foreground">
             <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span>
-              O vídeo é reprocessado no seu navegador em tempo real — por isso
-              leva mais ou menos a duração do vídeo. Nenhum metadado original
-              (autor, local, aparelho) é mantido.
+              {mode === "keep"
+                ? "O vídeo é enviado igual ao original — mesma duração, resolução e qualidade. Só os dados do arquivo (nome, data, origem) não vão junto."
+                : "O vídeo é reprocessado no navegador em tempo real (leva a duração do vídeo) e forçado para 1080x1920."}
             </span>
           </div>
+
 
           {busy && (
             <div className="space-y-2">
