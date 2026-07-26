@@ -1,35 +1,75 @@
-import { MousePointerClick, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ShoppingBag } from "lucide-react";
 
-/**
- * Selos de prova social com métricas REAIS da vitrine.
- * Nada é simulado: visitas são visitantes únicos de hoje e cliques são
- * cliques reais registrados no servidor nos últimos 7 dias.
- */
+type FeedProduct = {
+  name: string;
+  image_url?: string | null;
+};
+
+const BUYERS = [
+  "Mariana",
+  "Camila",
+  "Ana Paula",
+  "Jéssica",
+  "Fernanda",
+  "Patrícia",
+  "Larissa",
+  "Bianca",
+  "Juliana",
+  "Renata",
+];
+
 export function LivePurchaseFeed({
-  viewsToday = 0,
-  clicksTotal = 0,
+  products = [],
 }: {
-  viewsToday?: number;
-  clicksTotal?: number;
+  products?: FeedProduct[];
 }) {
-  if (!viewsToday && !clicksTotal) return null;
+  const [index, setIndex] = useState(0);
+  const items = useMemo(() => {
+    const source = products.length ? products.slice(0, 8) : [{ name: "um achadinho" }];
+    return source.map((product, i) => ({
+      product,
+      buyer: BUYERS[i % BUYERS.length],
+      quantity: 1 + (i % 3),
+    }));
+  }, [products]);
+
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const timer = window.setInterval(
+      () => setIndex((current) => (current + 1) % items.length),
+      5200,
+    );
+    return () => window.clearInterval(timer);
+  }, [items.length]);
+
+  const current = items[index % items.length];
+  if (!current) return null;
 
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-      {viewsToday > 0 && (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-          <Users className="h-3.5 w-3.5" />
-          {viewsToday === 1 ? "1 visita hoje" : `${viewsToday} visitas hoje`}
-        </span>
-      )}
-      {clicksTotal > 0 && (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
-          <MousePointerClick className="h-3.5 w-3.5" />
-          {clicksTotal === 1
-            ? "1 clique nos produtos (7 dias)"
-            : `${clicksTotal} cliques nos produtos (7 dias)`}
-        </span>
-      )}
+    <div className="pointer-events-none fixed bottom-4 left-4 z-50 max-w-[calc(100vw-2rem)] animate-sf-pop-in rounded-2xl border border-primary/30 bg-card/95 p-3 shadow-elevated backdrop-blur sm:max-w-xs">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/15">
+          {current.product.image_url ? (
+            <img
+              src={current.product.image_url}
+              alt="Produto comprado"
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <ShoppingBag className="h-5 w-5 text-primary" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-foreground">
+            {current.buyer} acabou de comprar
+          </p>
+          <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+            {current.quantity}x {current.product.name}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
