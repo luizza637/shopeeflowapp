@@ -4,12 +4,21 @@ export type BalloonStyle = "shopee" | "neon" | "glass" | "sticker" | "promo";
 
 export type OverlayPosition = "top" | "center" | "bottom";
 
+export type BalloonAnim =
+  | "pop"
+  | "bounce"
+  | "slide"
+  | "shake"
+  | "blink"
+  | "float";
+
 export type Overlay = {
   id: string;
   kind: "price" | "text";
   text: string;
   style: BalloonStyle;
   position: OverlayPosition;
+  anim: BalloonAnim;
   startSec: number;
   endSec: number | null;
 };
@@ -26,6 +35,36 @@ export const BALLOON_STYLES: {
   { value: "promo", label: "Promo pisca", hint: "Vermelho com pulso" },
 ];
 
+export const BALLOON_ANIMS: { value: BalloonAnim; label: string }[] = [
+  { value: "bounce", label: "Pula (chamativo)" },
+  { value: "pop", label: "Pop suave" },
+  { value: "slide", label: "Entra deslizando" },
+  { value: "shake", label: "Balança" },
+  { value: "blink", label: "Pisca" },
+  { value: "float", label: "Flutua" },
+];
+
+export const PHRASE_PRESETS: string[] = [
+  "Clique no link abaixo 👇",
+  "Corre que é por tempo limitado ⏰",
+  "Garanta o seu agora 🛒",
+  "Link na bio 👉",
+  "Últimas unidades! 🔥",
+  "Frete grátis hoje 🚚",
+  "Achadinho da Shopee 🧡",
+  "Preço que cabe no bolso 💸",
+  "Eu comprei e amei ❤️",
+  "Cupom liberado! 🎟️",
+  "Não perde essa promoção 😱",
+  "Compre 1, leve 2 🎁",
+  "Vale muito a pena 👏",
+  "Direto do link fixado 📌",
+  "Estoque acabando 🚨",
+  "Testado e aprovado ✅",
+  "Salva esse vídeo pra não perder 🔖",
+  "Comenta EU QUERO 💬",
+];
+
 export const POSITION_LABELS: Record<OverlayPosition, string> = {
   top: "Topo",
   center: "Meio",
@@ -36,13 +75,15 @@ export function newOverlay(kind: "price" | "text"): Overlay {
   return {
     id: Math.random().toString(36).slice(2, 9),
     kind,
-    text: kind === "price" ? "R$ 29,90" : "Link na bio 👉",
+    text: kind === "price" ? "R$ 29,90" : PHRASE_PRESETS[0],
     style: kind === "price" ? "shopee" : "neon",
     position: kind === "price" ? "center" : "bottom",
+    anim: "bounce",
     startSec: 0,
     endSec: null,
   };
 }
+
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
