@@ -22,6 +22,7 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/products", label: "Produtos", icon: ShoppingBag },
   { to: "/videos", label: "Vídeos", icon: Video },
+  { to: "/videx", label: "VidEx", icon: Clapperboard },
   { to: "/schedule", label: "Agendamento", icon: CalendarClock },
   { to: "/storefront", label: "Vitrine", icon: Store },
   { to: "/library", label: "Biblioteca", icon: Library },

@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VSlugRouteImport } from './routes/v.$slug'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
+import { Route as AuthenticatedVidexRouteImport } from './routes/_authenticated/videx'
 import { Route as AuthenticatedVideosRouteImport } from './routes/_authenticated/videos'
 import { Route as AuthenticatedStorefrontRouteImport } from './routes/_authenticated/storefront'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -46,6 +47,11 @@ const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   id: '/api/generate-image',
   path: '/api/generate-image',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedVidexRoute = AuthenticatedVidexRouteImport.update({
+  id: '/videx',
+  path: '/videx',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedVideosRoute = AuthenticatedVideosRouteImport.update({
   id: '/videos',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/videos': typeof AuthenticatedVideosRoute
+  '/videx': typeof AuthenticatedVidexRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/v/$slug': typeof VSlugRoute
   '/api/public/hooks/process-scheduled-posts': typeof ApiPublicHooksProcessScheduledPostsRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/videos': typeof AuthenticatedVideosRoute
+  '/videx': typeof AuthenticatedVidexRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/v/$slug': typeof VSlugRoute
   '/api/public/hooks/process-scheduled-posts': typeof ApiPublicHooksProcessScheduledPostsRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/storefront': typeof AuthenticatedStorefrontRoute
   '/_authenticated/videos': typeof AuthenticatedVideosRoute
+  '/_authenticated/videx': typeof AuthenticatedVidexRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/v/$slug': typeof VSlugRoute
   '/api/public/hooks/process-scheduled-posts': typeof ApiPublicHooksProcessScheduledPostsRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/storefront'
     | '/videos'
+    | '/videx'
     | '/api/generate-image'
     | '/v/$slug'
     | '/api/public/hooks/process-scheduled-posts'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/storefront'
     | '/videos'
+    | '/videx'
     | '/api/generate-image'
     | '/v/$slug'
     | '/api/public/hooks/process-scheduled-posts'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/storefront'
     | '/_authenticated/videos'
+    | '/_authenticated/videx'
     | '/api/generate-image'
     | '/v/$slug'
     | '/api/public/hooks/process-scheduled-posts'
@@ -224,6 +236,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/generate-image'
       preLoaderRoute: typeof ApiGenerateImageRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/videx': {
+      id: '/_authenticated/videx'
+      path: '/videx'
+      fullPath: '/videx'
+      preLoaderRoute: typeof AuthenticatedVidexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/videos': {
       id: '/_authenticated/videos'
@@ -292,6 +311,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStorefrontRoute: typeof AuthenticatedStorefrontRoute
   AuthenticatedVideosRoute: typeof AuthenticatedVideosRoute
+  AuthenticatedVidexRoute: typeof AuthenticatedVidexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -302,6 +322,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStorefrontRoute: AuthenticatedStorefrontRoute,
   AuthenticatedVideosRoute: AuthenticatedVideosRoute,
+  AuthenticatedVidexRoute: AuthenticatedVidexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
