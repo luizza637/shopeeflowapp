@@ -153,6 +153,76 @@ export const trackStorefrontView = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const trackProductClick = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        slug: z.string().trim().max(60),
+        productId: z.string().uuid(),
+        visitorHash: z.string().trim().max(64).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const supabasePublic = publicClient();
+    const { data: profile } = await supabasePublic
+      .from("profiles")
+      .select("id")
+      .eq("slug", data.slug)
+      .eq("storefront_published", true)
+      .maybeSingle();
+    if (!profile) return { ok: false };
+
+    // Só o servidor grava cliques (service role): visitantes não podem falsificar métricas.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: product } = await supabaseAdmin
+      .from("products")
+      .select("id")
+      .eq("id", data.productId)
+      .eq("user_id", profile.id)
+      .eq("is_public", true)
+      .maybeSingle();
+    if (!product) return { ok: false };
+
+    await supabaseAdmin.from("product_clicks").insert({
+      product_id: product.id,
+      profile_id: profile.id,
+      slug: data.slug,
+      visitor_hash: data.visitorHash ? data.visitorHash.slice(0, 64) : null,
+    });
+
+    return { ok: true };
+  });
+
+export const getProductClickStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const since = new Date();
+    since.setDate(since.getDate() - 29);
+    const sinceDay = since.toISOString().slice(0, 10);
+    const todayKey = new Date().toISOString().slice(0, 10);
+
+    const { data: rows, error } = await supabase
+      .from("product_clicks")
+      .select("product_id, day")
+      .eq("profile_id", userId)
+      .gte("day", sinceDay);
+    if (error) throw error;
+
+    const byProduct: Record<string, { total: number; today: number }> = {};
+    for (const r of rows ?? []) {
+      const id = r.product_id as string;
+      if (!byProduct[id]) byProduct[id] = { total: 0, today: 0 };
+      byProduct[id].total += 1;
+      if ((r.day as string) === todayKey) byProduct[id].today += 1;
+    }
+
+    const total = (rows ?? []).length;
+    const today = Object.values(byProduct).reduce((a, v) => a + v.today, 0);
+    return { byProduct, total, today };
+  });
+
 
 export const getStorefrontStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
