@@ -193,7 +193,9 @@ function msUntilMidnight() {
 }
 
 function StorefrontPage() {
-  const { profile, products, clickCounts } = Route.useLoaderData();
+  const { profile, products, clickCounts, viewsToday, clicksTotal } =
+    Route.useLoaderData();
+
   const { slug } = Route.useParams();
   const visitorHash = useVisitorHash();
   const [category, setCategory] = useState<string>("Todos");
