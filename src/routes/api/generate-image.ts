@@ -80,28 +80,36 @@ async function generateWithUserKey(
     if (part) parts.push(part);
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts }],
-        generationConfig: { responseModalities: ["IMAGE"] },
-      }),
-    },
-  );
+  const candidates = [GOOGLE_MODEL, "gemini-2.0-flash-preview-image-generation"];
+  let res: Response | null = null;
+  let lastText = "";
+  for (const model of candidates) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: { responseModalities: ["IMAGE"] },
+        }),
+      },
+    );
+    if (res.ok) break;
+    lastText = await res.text().catch(() => "");
+    console.warn(`[generate-image] modelo ${model} falhou (${res.status}): ${lastText.slice(0, 300)}`);
+    if (res.status !== 404) break; // só tenta outro modelo quando não existe
+  }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    if (res.status === 429) {
-      console.warn("[generate-image] cota da chave pessoal do Gemini esgotada:", text.slice(0, 400));
+  if (!res || !res.ok) {
+    const status = res?.status ?? 0;
+    if (status === 429) {
       return null; // fallback para o saldo do app
     }
-    if (res.status === 400 || res.status === 403) {
+    if (status === 400 || status === 403) {
       return sseError("Chave do Gemini inválida ou sem acesso ao modelo de imagens.");
     }
-    return sseError(`Falha no Gemini (${res.status}): ${text.slice(0, 160)}`);
+    return sseError(`Falha no Gemini (${status}): ${lastText.slice(0, 160)}`);
   }
 
 
