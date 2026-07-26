@@ -13,13 +13,17 @@ import {
   Package,
   CheckSquare,
   Square,
+  Upload,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { listVideos, deleteVideo, getPostCopy } from "@/lib/videos.functions";
 import { listProducts } from "@/lib/products.functions";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
+import { VideoImportDialog } from "@/components/video-import-dialog";
 import { cn } from "@/lib/utils";
+
 
 import {
   Select,
@@ -71,6 +75,8 @@ function VideosPage() {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
 
 
   const { data: videos = [], isLoading } = useQuery({
@@ -188,14 +194,27 @@ function VideosPage() {
             e metadados removidos.
           </p>
         </div>
-        <Button
-          onClick={() => setPickerOpen(true)}
-          className="bg-gradient-primary shadow-glow hover:opacity-90"
-        >
-          <Sparkles className="mr-2 h-4 w-4" />
-          Novo vídeo com IA
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <a href="https://videx.com.br" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Abrir VidEx
+            </a>
+          </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Importar vídeo
+          </Button>
+          <Button
+            onClick={() => setPickerOpen(true)}
+            className="bg-gradient-primary shadow-glow hover:opacity-90"
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Novo vídeo com IA
+          </Button>
+        </div>
       </header>
+
 
       {pickerOpen && (
         <div className="rounded-2xl border border-border bg-surface/60 p-4 backdrop-blur-sm">
@@ -252,14 +271,21 @@ function VideosPage() {
             Escolha um produto e gere o primeiro vídeo com narração e legendas
             automáticas.
           </p>
-          <Button
-            onClick={() => setPickerOpen(true)}
-            className="mt-6 bg-gradient-primary shadow-glow hover:opacity-90"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Novo vídeo com IA
-          </Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importar vídeo pronto
+            </Button>
+            <Button
+              onClick={() => setPickerOpen(true)}
+              className="bg-gradient-primary shadow-glow hover:opacity-90"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Novo vídeo com IA
+            </Button>
+          </div>
         </div>
+
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface/50 p-3 backdrop-blur-sm">
@@ -328,9 +354,16 @@ function VideosPage() {
       )}
 
 
+      <VideoImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        products={products}
+      />
+
       <VideoStudioDialog
         product={studioProduct}
         onClose={() => setStudioProduct(null)}
+
       />
     </div>
   );
