@@ -1,3 +1,5 @@
+import { drawOverlays, type Overlay } from "./video-overlays";
+
 // Importação de vídeo no navegador.
 //
 // Modo "keep" (padrão): NÃO reencoda nada. O vídeo é enviado byte a byte,
@@ -18,8 +20,6 @@ export type SanitizeResult = {
 };
 
 export type SanitizeMode = "keep" | "reencode";
-
-import { drawOverlays, type Overlay } from "./video-overlays";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
