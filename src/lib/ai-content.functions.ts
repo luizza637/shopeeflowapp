@@ -87,63 +87,82 @@ REGRA CRÍTICA sobre o campo "script":
       .filter(Boolean)
       .join("\n");
 
-    const response = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "emit_content",
-              description: "Emitir o pacote de conteúdo para o vídeo",
-              parameters: ContentSchema,
+    const { getUserGeminiKey, geminiJson } = await import("./user-gemini.server");
+    let parsed: Record<string, unknown> | null = null;
+
+    // 1) Chave pessoal do usuário (não consome o saldo de IA do app).
+    const userKey = await getUserGeminiKey(supabase as any, userId);
+    if (userKey) {
+      parsed = await geminiJson(userKey, system, user, ContentSchema as any);
+    }
+
+    if (!parsed) {
+      const response = await fetch(GATEWAY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": apiKey,
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "emit_content",
+                description: "Emitir o pacote de conteúdo para o vídeo",
+                parameters: ContentSchema,
+              },
             },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "emit_content" } },
-      }),
-    });
+          ],
+          tool_choice: { type: "function", function: { name: "emit_content" } },
+        }),
+      });
 
-    if (response.status === 429) {
-      throw new Error("Limite de requisições atingido. Tente novamente em instantes.");
-    }
-    if (response.status === 402) {
-      throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
-    }
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`Falha na IA (${response.status}): ${text.slice(0, 200)}`);
+      if (response.status === 429) {
+        throw new Error("Limite de requisições atingido. Tente novamente em instantes.");
+      }
+      if (response.status === 402) {
+        throw new Error(
+          userKey
+            ? "Sua chave do Gemini não conseguiu gerar o roteiro e o saldo de IA do app está esgotado. Confira a chave em Configurações."
+            : "Saldo de IA do app esgotado. Cadastre sua chave do Gemini em Configurações para continuar.",
+        );
+      }
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(`Falha na IA (${response.status}): ${text.slice(0, 200)}`);
+      }
+
+      const payload = (await response.json()) as {
+        choices?: Array<{
+          message?: {
+            tool_calls?: Array<{ function?: { arguments?: string } }>;
+            content?: string;
+          };
+        }>;
+      };
+
+      const args = payload.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      if (!args) {
+        const fallback = payload.choices?.[0]?.message?.content ?? "";
+        throw new Error(`IA não retornou conteúdo estruturado. ${fallback.slice(0, 120)}`);
+      }
+      try {
+        parsed = JSON.parse(args);
+      } catch {
+        throw new Error("Resposta da IA inválida (JSON malformado).");
+      }
     }
 
-    const payload = (await response.json()) as {
-      choices?: Array<{
-        message?: {
-          tool_calls?: Array<{ function?: { arguments?: string } }>;
-          content?: string;
-        };
-      }>;
-    };
+    if (!parsed) throw new Error("A IA não retornou conteúdo. Tente novamente.");
 
-    const args = payload.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (!args) {
-      const fallback = payload.choices?.[0]?.message?.content ?? "";
-      throw new Error(`IA não retornou conteúdo estruturado. ${fallback.slice(0, 120)}`);
-    }
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(args);
-    } catch {
-      throw new Error("Resposta da IA inválida (JSON malformado).");
-    }
+
+
 
     const record = {
       user_id: userId,

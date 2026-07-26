@@ -17,7 +17,16 @@ const Input = z.object({
 export const generateNarration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Input.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { getUserGeminiKey, geminiTts } = await import("./user-gemini.server");
+
+    // 1) Chave pessoal do usuário (não consome o saldo de IA do app).
+    const userKey = await getUserGeminiKey(context.supabase as any, context.userId);
+    if (userKey) {
+      const personal = await geminiTts(userKey, data.text, data.voice);
+      if (personal) return personal;
+    }
+
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
@@ -37,11 +46,17 @@ export const generateNarration = createServerFn({ method: "POST" })
     });
 
     if (res.status === 429) throw new Error("Limite de requisições atingido.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados.");
+    if (res.status === 402)
+      throw new Error(
+        userKey
+          ? "Sua chave do Gemini não conseguiu gerar a narração e o saldo de IA do app está esgotado."
+          : "Saldo de IA do app esgotado. Cadastre sua chave do Gemini em Configurações.",
+      );
     if (!res.ok) {
       const t = await res.text().catch(() => "");
       throw new Error(`Falha na narração (${res.status}): ${t.slice(0, 200)}`);
     }
+
 
     const buf = await res.arrayBuffer();
     // base64 encode
