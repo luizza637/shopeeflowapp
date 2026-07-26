@@ -326,7 +326,7 @@ function StorefrontPage() {
             "radial-gradient(60% 60% at 50% 0%, var(--primary) 0%, transparent 70%)",
         }}
       />
-      <div className="relative mx-auto w-full max-w-2xl px-4 pt-6 pb-12">
+      <div className="relative mx-auto w-full max-w-2xl px-4 pt-6 pb-28">
         <Ticker className="mb-6" />
         <header className="flex animate-sf-pop-in flex-col items-center text-center">
           <ShopeeBadge />

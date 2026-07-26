@@ -104,7 +104,7 @@ export function LivePurchaseFeed({ products }: { products: { name: string }[] })
 
       <div
         aria-live="polite"
-        className="pointer-events-none fixed left-1/2 top-3 z-50 w-[min(22rem,calc(100vw-1.5rem))] -translate-x-1/2"
+        className="pointer-events-none fixed bottom-4 left-4 z-50 w-[min(20rem,calc(100vw-2rem))]"
       >
         {item && (
           <div
