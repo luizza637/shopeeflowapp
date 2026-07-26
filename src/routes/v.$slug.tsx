@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 const SHOPEE_COUPONS_URL =
   "https://shopee.com.br/m/cupom-de-desconto?mmp_pid=an_18377100565&uls_trackid=564gujhm007g&gad_source=1&gad_campaignid=22786855170&gbraid=0AAAAACoEtRlOl-q6u7FIhC0-EDjjU09pm&gclid=CjwKCAjwvZHTBhAlEiwA1ug5P2Pq3fNqMZt11M6hv369aFi-BelAdFiuDT0ZnNJLhx5W6zod7Zl47BoCoJgQAvD_BwE";
-import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X, Ticket } from "lucide-react";
+import { ExternalLink, ShoppingBag, Star, Share2, Eye, Flame, Sparkles, Search, X, Ticket, Timer, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
