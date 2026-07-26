@@ -382,7 +382,7 @@ function StorefrontPage() {
           </div>
         </header>
 
-        <LivePurchaseFeed products={list} />
+        <LivePurchaseFeed viewsToday={viewsToday} clicksTotal={clicksTotal} />
 
         {deals.length > 0 && (
           <section className="mt-6 animate-sf-pop-in rounded-3xl border border-primary/30 bg-primary/[0.06] p-4 backdrop-blur">
