@@ -134,9 +134,10 @@ export function VideoImportDialog({
           </DialogTitle>
           <DialogDescription>
             Baixou o vídeo em outro app (VidEx, CapCut, galeria)? Traga para cá:
-            o app remove os metadados, ajusta para 9:16 e guarda na sua
-            biblioteca com Kit de Post.
+            por padrão o vídeo é salvo exatamente como está, sem cortes nem
+            perda de qualidade, apenas sem os metadados do arquivo.
           </DialogDescription>
+
         </DialogHeader>
 
         <div className="space-y-4">
