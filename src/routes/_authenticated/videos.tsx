@@ -261,18 +261,72 @@ function VideosPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {videos.map((v: any) => (
-            <VideoCard
-              key={v.id}
-              video={v}
-              onDelete={() => {
-                if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
-              }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface/50 p-3 backdrop-blur-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setSelected((s) =>
+                  s.length === videos.length ? [] : videos.map((v: any) => v.id),
+                )
+              }
+            >
+              {selected.length === videos.length && videos.length > 0 ? (
+                <CheckSquare className="mr-2 h-4 w-4" />
+              ) : (
+                <Square className="mr-2 h-4 w-4" />
+              )}
+              Selecionar tudo
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {selected.length} selecionado(s)
+            </span>
+            <div className="ml-auto flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!selected.length || busy}
+                onClick={copySelectedCaptions}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copiar legendas
+              </Button>
+              <Button
+                size="sm"
+                disabled={!selected.length || busy}
+                onClick={downloadSelected}
+                className="bg-gradient-primary shadow-glow hover:opacity-90"
+              >
+                {busy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Baixar selecionados
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {videos.map((v: any) => (
+              <VideoCard
+                key={v.id}
+                video={v}
+                selected={selected.includes(v.id)}
+                onToggleSelect={() => toggleSelect(v.id)}
+                busy={busy}
+                onCopyCaption={() => copyCaption(v)}
+                onKit={() => downloadKit(v)}
+                onDelete={() => {
+                  if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
+
 
       <VideoStudioDialog
         product={studioProduct}
