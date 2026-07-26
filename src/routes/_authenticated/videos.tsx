@@ -75,6 +75,8 @@ function VideosPage() {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
 
 
   const { data: videos = [], isLoading } = useQuery({
@@ -192,14 +194,27 @@ function VideosPage() {
             e metadados removidos.
           </p>
         </div>
-        <Button
-          onClick={() => setPickerOpen(true)}
-          className="bg-gradient-primary shadow-glow hover:opacity-90"
-        >
-          <Sparkles className="mr-2 h-4 w-4" />
-          Novo vídeo com IA
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <a href="https://videx.com.br" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Abrir VidEx
+            </a>
+          </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Importar vídeo
+          </Button>
+          <Button
+            onClick={() => setPickerOpen(true)}
+            className="bg-gradient-primary shadow-glow hover:opacity-90"
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Novo vídeo com IA
+          </Button>
+        </div>
       </header>
+
 
       {pickerOpen && (
         <div className="rounded-2xl border border-border bg-surface/60 p-4 backdrop-blur-sm">
