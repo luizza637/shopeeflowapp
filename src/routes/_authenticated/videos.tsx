@@ -354,9 +354,16 @@ function VideosPage() {
       )}
 
 
+      <VideoImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        products={products}
+      />
+
       <VideoStudioDialog
         product={studioProduct}
         onClose={() => setStudioProduct(null)}
+
       />
     </div>
   );
