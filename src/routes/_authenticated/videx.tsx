@@ -77,6 +77,19 @@ function VidexPage() {
         </div>
       </header>
 
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface/50 p-3 text-xs text-muted-foreground">
+        <span>
+          A página do VidEx não abriu ou apareceu um erro do navegador? Abra em uma
+          nova aba, baixe o vídeo e volte aqui para importar.
+        </span>
+        <Button size="sm" variant="outline" asChild className="ml-auto">
+          <a href={VIDEX_URL} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Abrir em nova aba
+          </a>
+        </Button>
+      </div>
+
       <Card className="overflow-hidden border-border/60">
         {blocked ? (
           <div className="flex flex-col items-center justify-center gap-4 px-6 py-20 text-center">
@@ -109,6 +122,7 @@ function VidexPage() {
             onLoad={() => {
               loadedRef.current = true;
             }}
+            onError={() => setBlocked(true)}
             className="h-[75vh] w-full bg-background"
             allow="clipboard-write; fullscreen"
             referrerPolicy="no-referrer"
