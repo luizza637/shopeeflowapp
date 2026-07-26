@@ -23,6 +23,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { saveVideoRecord } from "@/lib/videos.functions";
 import { sanitizeVideo, type SanitizeMode } from "@/lib/video-sanitize";
+import { VideoBalloonEditor } from "@/components/video-balloon-editor";
+import { newOverlay, type Overlay } from "@/lib/video-overlays";
 
 export function VideoImportDialog({
   open,
@@ -41,6 +43,7 @@ export function VideoImportDialog({
   const [title, setTitle] = useState("");
   const [productId, setProductId] = useState<string>("");
   const [mode, setMode] = useState<SanitizeMode>("keep");
+  const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState("");
@@ -49,6 +52,7 @@ export function VideoImportDialog({
     setFile(null);
     setTitle("");
     setProductId("");
+    setOverlays([]);
     setProgress(0);
     setStep("");
   };
@@ -68,12 +72,15 @@ export function VideoImportDialog({
     setProgress(0);
     try {
       setStep(
-        mode === "keep"
-          ? "Limpando metadados (sem alterar o vídeo)…"
-          : "Reprocessando em 9:16…",
+        overlays.length
+          ? "Aplicando balões no vídeo…"
+          : mode === "keep"
+            ? "Limpando metadados (sem alterar o vídeo)…"
+            : "Reprocessando em 9:16…",
       );
       const result = await sanitizeVideo(file, {
         mode,
+        overlays,
         onProgress: (r) => setProgress(r),
       });
 
@@ -126,7 +133,7 @@ export function VideoImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(true) : close())}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
@@ -174,7 +181,22 @@ export function VideoImportDialog({
               <Label>Produto (opcional)</Label>
               <Select
                 value={productId}
-                onValueChange={setProductId}
+                onValueChange={(v) => {
+                  setProductId(v);
+                  const p = products.find((x: any) => x.id === v);
+                  const price = p?.price ?? p?.current_price;
+                  if (price && !overlays.some((o) => o.kind === "price")) {
+                    setOverlays((prev) => [
+                      ...prev,
+                      {
+                        ...newOverlay("price"),
+                        text: `R$ ${Number(price)
+                          .toFixed(2)
+                          .replace(".", ",")}`,
+                      },
+                    ]);
+                  }
+                }}
                 disabled={busy}
               >
                 <SelectTrigger>
@@ -220,6 +242,13 @@ export function VideoImportDialog({
             </span>
           </div>
 
+
+          <VideoBalloonEditor
+            file={file}
+            overlays={overlays}
+            onChange={setOverlays}
+            disabled={busy}
+          />
 
           {busy && (
             <div className="space-y-2">
