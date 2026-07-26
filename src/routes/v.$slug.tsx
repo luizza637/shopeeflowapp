@@ -300,6 +300,9 @@ function StorefrontPage() {
           </div>
         </header>
 
+        <LivePurchaseFeed products={list} />
+
+
         <Ticker />
 
         <div className="relative mt-6 animate-sf-pop-in">
