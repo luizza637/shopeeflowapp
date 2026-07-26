@@ -19,6 +19,8 @@ import { Loader2, Download, Upload } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
 import { importFromShopeeLink } from "@/lib/import-product.functions";
 import { uploadProductPhoto } from "@/lib/images.functions";
+import { WebImageSearch } from "@/components/web-image-search";
+
 
 
 
@@ -227,9 +229,22 @@ export function ProductFormDialog({
           </div>
 
           <div className="space-y-3 rounded-lg border border-border bg-surface/40 px-4 py-3">
-            <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <p className="text-sm font-medium">Buscar foto na web (grátis)</p>
+              <p className="text-xs text-muted-foreground">
+                Escreva o nome do produto e escolha uma foto — sem precisar enviar arquivo.
+              </p>
+            </div>
+            <WebImageSearch
+              defaultQuery={form.name ?? ""}
+              onPicked={(url: string) => setForm((f) => ({ ...f, image_url: url }))}
+            />
+
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
               <div className="min-w-[180px] flex-1">
                 <p className="text-sm font-medium">Enviar foto do celular/PC</p>
+
                 <p className="text-xs text-muted-foreground">
                   Jeito mais confiável: salve a foto no app da Shopee e envie aqui (grátis, sem IA).
                 </p>
