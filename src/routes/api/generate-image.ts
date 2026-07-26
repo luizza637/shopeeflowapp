@@ -145,16 +145,18 @@ export const Route = createFileRoute("/api/generate-image")({
 
         // 1) Chave pessoal do usuário (não consome o saldo de IA do workspace).
         const userKey = await getUserGeminiKey(request);
+        let personalQuotaExhausted = false;
         if (userKey) {
           const personal = await generateWithUserKey(userKey, prompt, refs);
           if (personal) return personal;
+          personalQuotaExhausted = true;
           // cota da chave pessoal esgotada → segue para o saldo do app
         }
 
 
         // 2) Fallback: gateway de IA da Lovable.
         const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        if (!key) return sseError("Serviço de imagens indisponível (chave do app ausente).");
 
         const content: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
         for (const url of refs) {
@@ -177,7 +179,20 @@ export const Route = createFileRoute("/api/generate-image")({
 
         if (!upstream.ok || !upstream.body) {
           const text = await upstream.text().catch(() => "");
-          return new Response(text || "Upstream error", { status: upstream.status });
+          console.error(`[generate-image] gateway falhou (${upstream.status}): ${text.slice(0, 300)}`);
+          if (upstream.status === 402) {
+            return sseError(
+              personalQuotaExhausted
+                ? "A cota da sua chave do Gemini acabou por hoje e o saldo de IA do app também está esgotado. Tente novamente mais tarde ou use uma chave do Gemini com faturamento ativo."
+                : userKey
+                  ? "Não consegui usar sua chave do Gemini e o saldo de IA do app está esgotado. Confira a chave em Configurações."
+                  : "Saldo de IA do app esgotado. Cadastre sua chave do Gemini em Configurações para continuar gerando imagens.",
+            );
+          }
+          if (upstream.status === 429) {
+            return sseError("Muitas requisições agora. Aguarde alguns instantes e tente de novo.");
+          }
+          return sseError(`Falha na geração da imagem (${upstream.status}).`);
         }
 
         return new Response(upstream.body, {
