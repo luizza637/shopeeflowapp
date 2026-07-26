@@ -18,9 +18,11 @@ import {
 
   drawOverlays,
   newOverlay,
+  type BalloonAnim,
   type BalloonStyle,
   type Overlay,
   type OverlayPosition,
+
 } from "@/lib/video-overlays";
 
 export function VideoBalloonEditor({
