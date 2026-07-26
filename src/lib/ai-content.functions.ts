@@ -159,6 +159,10 @@ REGRA CRÍTICA sobre o campo "script":
       }
     }
 
+    if (!parsed) throw new Error("A IA não retornou conteúdo. Tente novamente.");
+
+
+
 
     const record = {
       user_id: userId,
