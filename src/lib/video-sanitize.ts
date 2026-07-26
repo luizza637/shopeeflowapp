@@ -1,3 +1,5 @@
+import { drawOverlays, type Overlay } from "./video-overlays";
+
 // Importação de vídeo no navegador.
 //
 // Modo "keep" (padrão): NÃO reencoda nada. O vídeo é enviado byte a byte,
@@ -43,7 +45,11 @@ function drawCover(
   ctx: CanvasRenderingContext2D,
   video: HTMLVideoElement,
   mode: "cover" | "contain",
+  outW: number,
+  outH: number,
 ) {
+  const WIDTH = outW;
+  const HEIGHT = outH;
   const vw = video.videoWidth || WIDTH;
   const vh = video.videoHeight || HEIGHT;
   const scale =
@@ -115,6 +121,7 @@ export async function sanitizeVideo(
   opts: {
     mode?: SanitizeMode;
     fit?: "cover" | "contain";
+    overlays?: Overlay[];
     onProgress?: (ratio: number) => void;
   } = {},
 ): Promise<SanitizeResult> {
@@ -126,7 +133,9 @@ export async function sanitizeVideo(
     const duration = Number.isFinite(video.duration) ? video.duration : 0;
     if (!duration) throw new Error("Vídeo sem duração válida.");
 
-    if (mode === "keep") {
+    const overlays = (opts.overlays ?? []).filter((o) => o.text.trim());
+
+    if (mode === "keep" && overlays.length === 0) {
       opts.onProgress?.(0.3);
       const thumbnailBase64 = await grabThumbnail(video);
       opts.onProgress?.(0.8);
@@ -145,13 +154,18 @@ export async function sanitizeVideo(
       };
     }
 
-    // ---- modo reencode (9:16 forçado) ----
+    // ---- render no canvas (9:16 forçado ou tamanho original com balões) ----
+    const OUT_W =
+      mode === "reencode" ? WIDTH : video.videoWidth || WIDTH;
+    const OUT_H =
+      mode === "reencode" ? HEIGHT : video.videoHeight || HEIGHT;
+
     video.currentTime = 0;
     video.muted = false;
 
     const canvas = document.createElement("canvas");
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    canvas.width = OUT_W;
+    canvas.height = OUT_H;
     const ctx = canvas.getContext("2d", { alpha: false })!;
     const stream = canvas.captureStream(FPS);
 
@@ -184,7 +198,9 @@ export async function sanitizeVideo(
     let thumbnailBase64 = "";
     let raf = 0;
     const tick = () => {
-      drawCover(ctx, video, opts.fit ?? "cover");
+      drawCover(ctx, video, opts.fit ?? "cover", OUT_W, OUT_H);
+      if (overlays.length)
+        drawOverlays(ctx, OUT_W, OUT_H, overlays, video.currentTime);
       if (!thumbnailBase64 && video.currentTime > 0.2) {
         thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
       }
@@ -217,8 +233,8 @@ export async function sanitizeVideo(
       blob,
       mimeType,
       durationSeconds: Math.round(duration),
-      width: WIDTH,
-      height: HEIGHT,
+      width: OUT_W,
+      height: OUT_H,
       thumbnailBase64,
     };
   } finally {
