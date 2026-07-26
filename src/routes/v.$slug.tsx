@@ -382,6 +382,76 @@ function StorefrontPage() {
 
         <Ticker />
 
+        {deals.length > 0 && (
+          <section className="mt-6 animate-sf-pop-in rounded-3xl border border-primary/30 bg-primary/[0.06] p-4 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-primary">
+                <Flame className="h-4 w-4 animate-sf-wiggle" /> Achadinhos do dia
+              </h2>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold tabular-nums text-primary-foreground">
+                <Timer className="h-3.5 w-3.5" /> termina em {countdown}
+              </span>
+            </div>
+            <div className="mt-3 -mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {deals.map((p, i) => {
+                const href = p.affiliate_url || p.url || undefined;
+                return (
+                  <div
+                    key={`deal-${p.id}`}
+                    className="w-40 shrink-0 rounded-2xl border border-border bg-card p-2.5 transition hover:-translate-y-1 hover:border-primary/60"
+                  >
+                    <a
+                      {...(href
+                        ? { href, target: "_blank", rel: "noopener noreferrer sponsored" }
+                        : {})}
+                      onClick={() => {
+                        playClickSound();
+                        registerClick(p);
+                      }}
+                      className="block"
+                    >
+                      <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                        {p.image_url ? (
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          {i === 0 ? "🥇 Top 1" : `#${i + 1}`}
+                        </span>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-xs font-medium leading-snug">
+                        {p.name}
+                      </p>
+                      {p.price != null && (
+                        <p className="mt-1 text-sm font-bold text-primary">
+                          {brl(Number(p.price))}
+                        </p>
+                      )}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => shareOnWhatsApp(p)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-primary/40 bg-primary/10 py-1 text-[11px] font-semibold text-primary transition hover:bg-primary/20"
+                    >
+                      <MessageCircle className="h-3 w-3" /> Enviar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+
+
         <div className="relative mt-6 animate-sf-pop-in">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
