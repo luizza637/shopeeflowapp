@@ -272,6 +272,47 @@ function StorefrontPage() {
     toast.success("Link copiado!");
   };
 
+  const registerClick = (p: PublicProduct) => {
+    trackProductClick({
+      data: { slug, productId: p.id, visitorHash: visitorHash ?? undefined },
+    }).catch(() => {});
+  };
+
+  const productLink = (p: PublicProduct) =>
+    p.affiliate_url || p.url || (typeof window !== "undefined" ? window.location.href : "");
+
+  const productMessage = (p: PublicProduct) =>
+    `😍 Olha esse achadinho: ${p.name}${
+      p.price != null ? ` — só ${brl(Number(p.price))}` : ""
+    }\n${productLink(p)}`;
+
+  const shareOnWhatsApp = (p: PublicProduct) => {
+    playClickSound();
+    registerClick(p);
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(productMessage(p))}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  const shareProduct = async (p: PublicProduct) => {
+    playClickSound();
+    const text = productMessage(p);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: p.name, text, url: productLink(p) });
+        return;
+      } catch {
+        /* cancelado */
+      }
+    }
+    await navigator.clipboard.writeText(text);
+    toast.success("Link do produto copiado!");
+  };
+
+
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-background pb-16">
       <AnimatedBackdrop />
