@@ -172,16 +172,26 @@ export async function sanitizeVideo(
     video.style.zIndex = "-1";
     document.body.appendChild(video);
 
-    video.muted = false;
+    // Mantemos o vídeo mudo no alto-falante (autoplay não é bloqueado assim),
+    // mas o áudio continua disponível via captureStream do próprio elemento.
+    video.muted = true;
+    (video as any).defaultMuted = true;
+    video.volume = 0;
+
     await new Promise<void>((resolve) => {
-      const onSeeked = () => resolve();
-      video.onseeked = onSeeked;
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      video.onseeked = finish;
       try {
         video.currentTime = 0;
       } catch {
-        resolve();
+        finish();
       }
-      setTimeout(resolve, 2000);
+      setTimeout(finish, 2000);
     });
     video.onseeked = null;
 
@@ -190,34 +200,38 @@ export async function sanitizeVideo(
     canvas.height = OUT_H;
     const ctx = canvas.getContext("2d", { alpha: false })!;
 
-    let audioCtx: AudioContext | null = null;
-    let stream: MediaStream;
+    const stream = canvas.captureStream(FPS);
+    // Áudio: pegamos direto do elemento (não usa AudioContext, não trava)
+    let elementStream: MediaStream | null = null;
     try {
-      const AC: typeof AudioContext =
-        (window as any).AudioContext || (window as any).webkitAudioContext;
-      audioCtx = new AC();
-      await audioCtx.resume().catch(() => undefined);
-      const source = audioCtx.createMediaElementSource(video);
-      const dest = audioCtx.createMediaStreamDestination();
-      source.connect(dest);
-      stream = canvas.captureStream(FPS);
-      dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+      const capture =
+        (video as any).captureStream?.bind(video) ??
+        (video as any).mozCaptureStream?.bind(video);
+      if (capture) {
+        elementStream = capture() as MediaStream;
+        elementStream.getAudioTracks().forEach((t) => stream.addTrack(t));
+      }
     } catch {
-      audioCtx = null;
-      stream = canvas.captureStream(FPS);
+      elementStream = null;
     }
 
     const mimeType = pickMime();
-    const recorder = new MediaRecorder(stream, {
-      mimeType,
-      videoBitsPerSecond: 6_000_000,
-    });
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 6_000_000,
+      });
+    } catch {
+      recorder = new MediaRecorder(stream);
+    }
     const chunks: BlobPart[] = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size) chunks.push(e.data);
     };
+    const outType = recorder.mimeType || mimeType;
     const done = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: outType }));
     });
 
     let thumbnailBase64 = "";
@@ -238,35 +252,70 @@ export async function sanitizeVideo(
 
     // primeiro frame já desenhado antes de começar a gravar
     paint();
-    await video.play();
+    try {
+      await video.play();
+    } catch {
+      throw new Error(
+        "O navegador bloqueou a reprodução do vídeo. Toque na tela e tente de novo.",
+      );
+    }
     tick();
     recorder.start(1000);
 
-
+    // Espera o fim do vídeo, com rede de segurança caso 'ended' não dispare
     await new Promise<void>((resolve) => {
-      video.onended = () => resolve();
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearInterval(watch);
+        clearTimeout(hardStop);
+        resolve();
+      };
+      video.onended = finish;
+      const watch = setInterval(() => {
+        if (video.ended || (duration && video.currentTime >= duration - 0.15))
+          finish();
+      }, 250);
+      // limite: duração + 20s
+      const hardStop = setTimeout(finish, (duration + 20) * 1000);
     });
+    video.onended = null;
 
     cancelAnimationFrame(raf);
     // pequeno respiro pro último frame entrar no arquivo
-    await new Promise((r) => setTimeout(r, 200));
-    recorder.stop();
+    await new Promise((r) => setTimeout(r, 300));
+    try {
+      video.pause();
+    } catch {
+      /* ignore */
+    }
+    if (recorder.state !== "inactive") recorder.stop();
     const blob = await done;
     try {
-      await audioCtx?.close();
+      elementStream?.getTracks().forEach((t) => t.stop());
+      stream.getTracks().forEach((t) => t.stop());
     } catch {
       /* ignore */
     }
     video.remove();
 
 
+
     if (!thumbnailBase64) {
       thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
     }
 
+    if (!blob.size) {
+      throw new Error(
+        "A gravação saiu vazia. Tente novamente com o vídeo um pouco menor.",
+      );
+    }
+
     return {
       blob,
-      mimeType,
+      mimeType: outType,
+
       durationSeconds: Math.round(duration),
       width: OUT_W,
       height: OUT_H,
