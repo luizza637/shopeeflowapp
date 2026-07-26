@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import {
   getPublicStorefront,
   trackStorefrontView,
+  trackProductClick,
   type PublicProduct,
 } from "@/lib/storefront.functions";
 import { generateCta } from "@/lib/product-cta";
 import { getProductBadges, BADGE_TONE_CLASS } from "@/lib/product-badges";
 import { playClickSound } from "@/lib/click-sound";
+import { LivePurchaseFeed } from "@/components/live-purchase-feed";
 import { cn } from "@/lib/utils";
 
 
