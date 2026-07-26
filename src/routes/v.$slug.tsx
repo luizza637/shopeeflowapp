@@ -192,6 +192,28 @@ function msUntilMidnight() {
   return end.getTime() - now.getTime();
 }
 
+/** Impede que a vitrine pública ofereça instalação do app ShopeeFlow */
+function useDisableInstallPrompt() {
+  useEffect(() => {
+    const links = Array.from(
+      document.querySelectorAll<HTMLLinkElement>('link[rel="manifest"]'),
+    );
+    const parents = links.map((l) => ({ el: l, parent: l.parentNode }));
+    links.forEach((l) => l.remove());
+
+    const block = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+    window.addEventListener("beforeinstallprompt", block);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", block);
+      parents.forEach(({ el, parent }) => parent?.appendChild(el));
+    };
+  }, []);
+}
+
 function StorefrontPage() {
   const { profile, products, clickCounts } = Route.useLoaderData();
 
@@ -200,6 +222,8 @@ function StorefrontPage() {
   const [category, setCategory] = useState<string>("Todos");
   const [query, setQuery] = useState("");
   const countdown = useCountdown();
+  useDisableInstallPrompt();
+
 
   const clicks = (clickCounts ?? {}) as Record<string, number>;
   const list = (products ?? []) as PublicProduct[];
