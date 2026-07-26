@@ -74,6 +74,32 @@ export function ProductFormDialog({
 }) {
   const [form, setForm] = useState<Product>(empty);
   const save = useServerFn(upsertProduct);
+  const importLink = useServerFn(importFromShopeeLink);
+
+  const importMutation = useMutation({
+    mutationFn: (url: string) => importLink({ data: { url } }),
+    onSuccess: (r: any) => {
+      setForm((f) => ({
+        ...f,
+        image_url: r.imageUrl ?? f.image_url,
+        name: f.name?.trim() ? f.name : (r.name ?? ""),
+        price: f.price ?? r.price ?? null,
+        shop_name: f.shop_name?.trim() ? f.shop_name : (r.shopName ?? ""),
+      }));
+      toast.success("Foto importada do link da Shopee");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Não consegui importar do link"),
+  });
+
+  const runImport = () => {
+    const url = (form.url || form.affiliate_url || "").trim();
+    if (!url) {
+      toast.error("Cole primeiro o link da Shopee");
+      return;
+    }
+    importMutation.mutate(url);
+  };
+
 
   useEffect(() => {
     if (open) setForm(product ? { ...empty, ...product } : empty);
