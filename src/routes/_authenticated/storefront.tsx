@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Users,
   TrendingUp,
+  MousePointerClick,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import {
   updateStorefront,
   setProductPublic,
   getStorefrontStats,
+  getProductClickStats,
 } from "@/lib/storefront.functions";
 import { generateCta } from "@/lib/product-cta";
 import { cn } from "@/lib/utils";
@@ -80,6 +82,14 @@ function StorefrontAdmin() {
     queryFn: () => loadStats({}),
     refetchInterval: 60_000,
   });
+
+  const loadClicks = useServerFn(getProductClickStats);
+  const { data: clicks } = useQuery({
+    queryKey: ["storefront-clicks"],
+    queryFn: () => loadClicks({}),
+    refetchInterval: 60_000,
+  });
+
 
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
@@ -140,7 +150,7 @@ function StorefrontAdmin() {
         </p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<Eye className="h-4 w-4" />}
           label="Visitas hoje"
@@ -157,7 +167,13 @@ function StorefrontAdmin() {
           label="Últimos 7 dias"
           value={stats?.last7 ?? 0}
         />
+        <StatCard
+          icon={<MousePointerClick className="h-4 w-4" />}
+          label="Cliques em produtos hoje"
+          value={clicks?.today ?? 0}
+        />
       </section>
+
 
       {!!stats?.series?.length && (
         <section className="rounded-2xl border border-border bg-card p-5">
@@ -315,7 +331,15 @@ function StorefrontAdmin() {
                     {p.category && (
                       <span className="text-[11px] text-muted-foreground">{p.category}</span>
                     )}
+                    <span className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                      <MousePointerClick className="h-3.5 w-3.5 text-primary" />
+                      {clicks?.byProduct?.[p.id]?.total ?? 0} cliques
+                      <span className="opacity-70">
+                        ({clicks?.byProduct?.[p.id]?.today ?? 0} hoje)
+                      </span>
+                    </span>
                   </div>
+
                   <div className="flex items-center justify-between gap-2">
                     {p.price != null ? (
                       <span className="text-sm font-bold text-primary">

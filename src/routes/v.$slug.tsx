@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import {
   getPublicStorefront,
   trackStorefrontView,
+  trackProductClick,
   type PublicProduct,
 } from "@/lib/storefront.functions";
 import { generateCta } from "@/lib/product-cta";
 import { getProductBadges, BADGE_TONE_CLASS } from "@/lib/product-badges";
 import { playClickSound } from "@/lib/click-sound";
+import { LivePurchaseFeed } from "@/components/live-purchase-feed";
 import { cn } from "@/lib/utils";
 
 
@@ -298,6 +300,9 @@ function StorefrontPage() {
           </div>
         </header>
 
+        <LivePurchaseFeed products={list} />
+
+
         <Ticker />
 
         <div className="relative mt-6 animate-sf-pop-in">
@@ -368,7 +373,12 @@ function StorefrontPage() {
                 {...(href
                   ? { href, target: "_blank", rel: "noopener noreferrer sponsored" }
                   : {})}
-                onClick={() => playClickSound()}
+                onClick={() => {
+                  playClickSound();
+                  trackProductClick({
+                    data: { slug, productId: p.id, visitorHash: visitorHash ?? undefined },
+                  }).catch(() => {});
+                }}
                 style={{ animationDelay: `${Math.min(i, 12) * 60}ms` }}
                 className="group flex animate-sf-pop-in gap-3 hover:animate-none motion-safe:animate-sf-card-pulse rounded-2xl border border-border bg-card p-3 transition duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_50px_-24px_var(--primary)] active:scale-[0.98] sm:flex-col"
               >
