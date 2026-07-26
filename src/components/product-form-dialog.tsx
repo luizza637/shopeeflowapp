@@ -102,6 +102,45 @@ export function ProductFormDialog({
     importMutation.mutate(url);
   };
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const uploadPhoto = useServerFn(uploadProductPhoto);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Não consegui ler o arquivo"));
+        reader.readAsDataURL(file);
+      });
+      return uploadPhoto({
+        data: { base64, contentType: file.type || "image/jpeg" },
+      });
+    },
+    onSuccess: (r: any) => {
+      setForm((f) => ({ ...f, image_url: r.url }));
+      toast.success("Foto enviada");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Não consegui enviar a foto"),
+  });
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx. 8MB)");
+      return;
+    }
+    uploadMutation.mutate(file);
+  };
+
+
+
 
   useEffect(() => {
     if (open) setForm(product ? { ...empty, ...product } : empty);
