@@ -169,15 +169,38 @@ function useVisitorHash() {
 }
 
 
+/** Contador até a virada do dia (ofertas do dia) */
+function useCountdown() {
+  const [left, setLeft] = useState<number>(() => msUntilMidnight());
+  useEffect(() => {
+    const t = setInterval(() => setLeft(msUntilMidnight()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const total = Math.max(0, Math.floor(left / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2, "0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function msUntilMidnight() {
+  const now = new Date();
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return end.getTime() - now.getTime();
+}
+
 function StorefrontPage() {
-  const { profile, products } = Route.useLoaderData();
+  const { profile, products, clickCounts } = Route.useLoaderData();
   const { slug } = Route.useParams();
   const visitorHash = useVisitorHash();
   const [category, setCategory] = useState<string>("Todos");
   const [query, setQuery] = useState("");
+  const countdown = useCountdown();
 
-
+  const clicks = (clickCounts ?? {}) as Record<string, number>;
   const list = (products ?? []) as PublicProduct[];
+
 
   useEffect(() => {
     if (!profile || !visitorHash) return;
