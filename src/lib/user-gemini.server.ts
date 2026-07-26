@@ -44,7 +44,7 @@ export async function geminiJson(
             contents: [{ role: "user", parts: [{ text: user }] }],
             generationConfig: {
               responseMimeType: "application/json",
-              responseSchema: schema,
+              responseSchema: sanitizeSchema(schema),
             },
           }),
         },
