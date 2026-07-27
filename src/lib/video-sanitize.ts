@@ -23,7 +23,8 @@ export type SanitizeMode = "keep" | "reencode";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const FPS = 30;
+const FPS = 24;
+const MAX_CANVAS_PIXELS = 1080 * 1920;
 
 function pickMime(): string {
   const candidates = [
@@ -77,6 +78,46 @@ function drawCover(
   ctx.drawImage(video, x, y, w, h);
 }
 
+function getScaledOutputSize(width: number, height: number) {
+  const safeWidth = width || WIDTH;
+  const safeHeight = height || HEIGHT;
+  const pixels = safeWidth * safeHeight;
+  if (pixels <= MAX_CANVAS_PIXELS) {
+    return { width: safeWidth, height: safeHeight };
+  }
+
+  const scale = Math.sqrt(MAX_CANVAS_PIXELS / pixels);
+  return {
+    width: Math.max(2, Math.round((safeWidth * scale) / 2) * 2),
+    height: Math.max(2, Math.round((safeHeight * scale) / 2) * 2),
+  };
+}
+
+function waitForEvent(
+  target: HTMLMediaElement,
+  eventName: keyof HTMLMediaElementEventMap,
+  timeoutMs: number,
+) {
+  return new Promise<void>((resolve) => {
+    let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      target.removeEventListener(eventName, finish);
+      if (timeout) clearTimeout(timeout);
+      resolve();
+    };
+    target.addEventListener(eventName, finish, { once: true });
+    timeout = setTimeout(finish, timeoutMs);
+  });
+}
+
+async function waitForDrawableFrame(video: HTMLVideoElement) {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  await waitForEvent(video, "loadeddata", 2500);
+}
+
 async function loadVideo(url: string) {
   const video = document.createElement("video");
   video.src = url;
@@ -96,7 +137,8 @@ async function grabThumbnail(video: HTMLVideoElement): Promise<string> {
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext("2d", { alpha: false })!;
+  const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) return "";
   const target = Math.min(1, (video.duration || 1) / 2);
   await new Promise<void>((resolve) => {
     const onSeeked = () => resolve();
@@ -127,9 +169,15 @@ export async function sanitizeVideo(
 ): Promise<SanitizeResult> {
   const mode = opts.mode ?? "keep";
   const srcUrl = URL.createObjectURL(file);
+  let attachedVideo: HTMLVideoElement | null = null;
+  let raf = 0;
+  let renderTimer: ReturnType<typeof setInterval> | undefined;
+  let elementStream: MediaStream | null = null;
+  let canvasStream: MediaStream | null = null;
 
   try {
     const video = await loadVideo(srcUrl);
+    attachedVideo = video;
     const duration = Number.isFinite(video.duration) ? video.duration : 0;
     if (!duration) throw new Error("Vídeo sem duração válida.");
 
@@ -155,21 +203,25 @@ export async function sanitizeVideo(
     }
 
     // ---- render no canvas (9:16 forçado ou tamanho original com balões) ----
-    const OUT_W =
-      mode === "reencode" ? WIDTH : video.videoWidth || WIDTH;
-    const OUT_H =
-      mode === "reencode" ? HEIGHT : video.videoHeight || HEIGHT;
+    const originalSize = getScaledOutputSize(video.videoWidth, video.videoHeight);
+    const OUT_W = mode === "reencode" ? WIDTH : originalSize.width;
+    const OUT_H = mode === "reencode" ? HEIGHT : originalSize.height;
+
+    if (typeof MediaRecorder === "undefined") {
+      throw new Error(
+        "Este navegador não consegue salvar vídeo com balões. Tente pelo Chrome atualizado.",
+      );
+    }
 
     // O elemento precisa estar no documento e "renderizável", senão alguns
     // navegadores não decodificam os frames e o resultado sai todo preto.
     video.style.position = "fixed";
-    video.style.left = "0";
-    video.style.bottom = "0";
-    video.style.width = "2px";
-    video.style.height = "2px";
+    video.style.left = "-9999px";
+    video.style.top = "0";
+    video.style.width = "8px";
+    video.style.height = "8px";
     video.style.opacity = "0.01";
     video.style.pointerEvents = "none";
-    video.style.zIndex = "-1";
     document.body.appendChild(video);
 
     // Mantemos o vídeo mudo no alto-falante (autoplay não é bloqueado assim),
@@ -180,36 +232,48 @@ export async function sanitizeVideo(
 
     await new Promise<void>((resolve) => {
       let settled = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       const finish = () => {
         if (settled) return;
         settled = true;
+        video.removeEventListener("seeked", finish);
+        if (timeout) clearTimeout(timeout);
         resolve();
       };
-      video.onseeked = finish;
+      video.addEventListener("seeked", finish, { once: true });
       try {
         video.currentTime = 0;
       } catch {
         finish();
       }
-      setTimeout(finish, 2000);
+      timeout = setTimeout(finish, 2000);
     });
-    video.onseeked = null;
+    await waitForDrawableFrame(video);
 
     const canvas = document.createElement("canvas");
     canvas.width = OUT_W;
     canvas.height = OUT_H;
-    const ctx = canvas.getContext("2d", { alpha: false })!;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) throw new Error("Não consegui preparar o editor de balões.");
 
-    const stream = canvas.captureStream(FPS);
+    const captureCanvas =
+      canvas.captureStream?.bind(canvas) ??
+      (canvas as unknown as { mozCaptureStream?: (fps?: number) => MediaStream })
+        .mozCaptureStream?.bind(canvas);
+    if (!captureCanvas) {
+      throw new Error(
+        "Este navegador não consegue gravar balões no vídeo. Tente pelo Chrome atualizado.",
+      );
+    }
+    canvasStream = captureCanvas(FPS);
     // Áudio: pegamos direto do elemento (não usa AudioContext, não trava)
-    let elementStream: MediaStream | null = null;
     try {
       const capture =
         (video as any).captureStream?.bind(video) ??
         (video as any).mozCaptureStream?.bind(video);
       if (capture) {
         elementStream = capture() as MediaStream;
-        elementStream.getAudioTracks().forEach((t) => stream.addTrack(t));
+        elementStream.getAudioTracks().forEach((t) => canvasStream?.addTrack(t));
       }
     } catch {
       elementStream = null;
@@ -218,24 +282,24 @@ export async function sanitizeVideo(
     const mimeType = pickMime();
     let recorder: MediaRecorder;
     try {
-      recorder = new MediaRecorder(stream, {
+      recorder = new MediaRecorder(canvasStream, {
         mimeType,
-        videoBitsPerSecond: 6_000_000,
+        videoBitsPerSecond: 4_500_000,
       });
     } catch {
-      recorder = new MediaRecorder(stream);
+      recorder = new MediaRecorder(canvasStream);
     }
     const chunks: BlobPart[] = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size) chunks.push(e.data);
     };
     const outType = recorder.mimeType || mimeType;
-    const done = new Promise<Blob>((resolve) => {
+    const done = new Promise<Blob>((resolve, reject) => {
       recorder.onstop = () => resolve(new Blob(chunks, { type: outType }));
+      recorder.onerror = () => reject(new Error("A gravação do vídeo falhou."));
     });
 
     let thumbnailBase64 = "";
-    let raf = 0;
     const paint = () => {
       drawCover(ctx, video, opts.fit ?? "cover", OUT_W, OUT_H);
       if (overlays.length)
@@ -247,42 +311,55 @@ export async function sanitizeVideo(
         thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
       }
       opts.onProgress?.(Math.min(1, video.currentTime / duration));
-      raf = requestAnimationFrame(tick);
+      if (typeof requestAnimationFrame === "function") {
+        raf = requestAnimationFrame(tick);
+      }
     };
 
     // primeiro frame já desenhado antes de começar a gravar
     paint();
+    recorder.start(500);
     try {
       await video.play();
     } catch {
+      if (recorder.state !== "inactive") recorder.stop();
       throw new Error(
         "O navegador bloqueou a reprodução do vídeo. Toque na tela e tente de novo.",
       );
     }
-    tick();
-    recorder.start(1000);
+    if (typeof requestAnimationFrame === "function") {
+      tick();
+    } else {
+      renderTimer = setInterval(() => {
+        paint();
+        opts.onProgress?.(Math.min(1, video.currentTime / duration));
+      }, 1000 / FPS);
+    }
 
     // Espera o fim do vídeo, com rede de segurança caso 'ended' não dispare
     await new Promise<void>((resolve) => {
       let settled = false;
+      let watch: ReturnType<typeof setInterval> | undefined;
+      let hardStop: ReturnType<typeof setTimeout> | undefined;
       const finish = () => {
         if (settled) return;
         settled = true;
-        clearInterval(watch);
-        clearTimeout(hardStop);
+        video.removeEventListener("ended", finish);
+        if (watch) clearInterval(watch);
+        if (hardStop) clearTimeout(hardStop);
         resolve();
       };
-      video.onended = finish;
-      const watch = setInterval(() => {
+      video.addEventListener("ended", finish, { once: true });
+      watch = setInterval(() => {
         if (video.ended || (duration && video.currentTime >= duration - 0.15))
           finish();
       }, 250);
       // limite: duração + 20s
-      const hardStop = setTimeout(finish, (duration + 20) * 1000);
+      hardStop = setTimeout(finish, (duration + 20) * 1000);
     });
-    video.onended = null;
 
-    cancelAnimationFrame(raf);
+    if (raf) cancelAnimationFrame(raf);
+    if (renderTimer) clearInterval(renderTimer);
     // pequeno respiro pro último frame entrar no arquivo
     await new Promise((r) => setTimeout(r, 300));
     try {
@@ -292,15 +369,6 @@ export async function sanitizeVideo(
     }
     if (recorder.state !== "inactive") recorder.stop();
     const blob = await done;
-    try {
-      elementStream?.getTracks().forEach((t) => t.stop());
-      stream.getTracks().forEach((t) => t.stop());
-    } catch {
-      /* ignore */
-    }
-    video.remove();
-
-
 
     if (!thumbnailBase64) {
       thumbnailBase64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1] ?? "";
@@ -322,6 +390,15 @@ export async function sanitizeVideo(
       thumbnailBase64,
     };
   } finally {
+    if (raf) cancelAnimationFrame(raf);
+    if (renderTimer) clearInterval(renderTimer);
+    try {
+      elementStream?.getTracks().forEach((t) => t.stop());
+      canvasStream?.getTracks().forEach((t) => t.stop());
+    } catch {
+      /* ignore */
+    }
+    attachedVideo?.remove();
     URL.revokeObjectURL(srcUrl);
   }
 }
