@@ -282,7 +282,7 @@ export async function sanitizeVideo(
     const mimeType = pickMime();
     let recorder: MediaRecorder;
     try {
-      recorder = new MediaRecorder(stream, {
+      recorder = new MediaRecorder(canvasStream, {
         mimeType,
         videoBitsPerSecond: 4_500_000,
       });
