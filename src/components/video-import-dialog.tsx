@@ -21,10 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { saveVideoRecord, getPostCopy } from "@/lib/videos.functions";
+import { saveVideoRecord } from "@/lib/videos.functions";
 import {
   SOCIAL_PLATFORMS,
-  buildCaption,
   platformInfo,
   type SocialPlatform,
 } from "@/lib/social-caption";
@@ -42,7 +41,7 @@ export function VideoImportDialog({
 }) {
   const qc = useQueryClient();
   const saveRec = useServerFn(saveVideoRecord);
-  const postCopy = useServerFn(getPostCopy);
+  
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -128,14 +127,7 @@ export function VideoImportDialog({
 
       if (saved?.id) {
         setSavedId(saved.id);
-        try {
-          const kit = await postCopy({ data: { videoId: saved.id } });
-          const text = buildCaption(platform, kit);
-          setCaption(text);
-          await navigator.clipboard.writeText(text).catch(() => {});
-        } catch {
-          setCaption("");
-        }
+        setCaption("");
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Não consegui importar esse vídeo");
@@ -145,20 +137,13 @@ export function VideoImportDialog({
     }
   };
 
-  const regenerate = async (p: SocialPlatform) => {
+  const regenerate = (p: SocialPlatform) => {
     setPlatform(p);
-    if (!savedId) return;
-    try {
-      const kit = await postCopy({ data: { videoId: savedId } });
-      setCaption(buildCaption(p, kit));
-    } catch {
-      /* ignore */
-    }
   };
 
   const publish = (p: SocialPlatform) => {
     const info = platformInfo(p);
-    if (caption) {
+    if (caption.trim()) {
       navigator.clipboard.writeText(caption).catch(() => {});
       toast.success(`Legenda copiada! Cole na publicação do ${info.label}.`);
     }
@@ -176,7 +161,7 @@ export function VideoImportDialog({
           <DialogDescription>
             Baixou o vídeo no VidEx? Traga para cá: o arquivo é salvo exatamente
             como está — sem cortes, sem perda de qualidade — apenas com os
-            metadados removidos. Já preparo a legenda da rede escolhida.
+            metadados removidos. A legenda você escreve do seu jeito.
           </DialogDescription>
         </DialogHeader>
 
@@ -203,8 +188,8 @@ export function VideoImportDialog({
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              A legenda com hashtags é gerada no formato ideal dessa rede e
-              copiada automaticamente ao final.
+              Depois de salvar, você escreve a legenda no espaço em branco e o
+              botão “Postar” leva direto para o upload dessa rede.
             </p>
           </div>
 
@@ -288,11 +273,9 @@ export function VideoImportDialog({
 
           {savedId && (
             <p className="text-sm font-medium text-primary">
-              Pronto! Legenda de {platformInfo(platform).label} gerada e copiada.
+              Pronto! Escreva sua legenda abaixo para o {platformInfo(platform).label}.
             </p>
           )}
-
-
 
           {savedId && (
             <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
@@ -300,6 +283,7 @@ export function VideoImportDialog({
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 rows={6}
+                placeholder="Escreva aqui a sua legenda…"
                 className="text-sm"
               />
               <div className="flex flex-wrap gap-2">
