@@ -41,7 +41,7 @@ export function VideoImportDialog({
 }) {
   const qc = useQueryClient();
   const saveRec = useServerFn(saveVideoRecord);
-  const postCopy = useServerFn(getPostCopy);
+  
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -273,11 +273,9 @@ export function VideoImportDialog({
 
           {savedId && (
             <p className="text-sm font-medium text-primary">
-              Pronto! Legenda de {platformInfo(platform).label} gerada e copiada.
+              Pronto! Escreva sua legenda abaixo para o {platformInfo(platform).label}.
             </p>
           )}
-
-
 
           {savedId && (
             <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
@@ -285,6 +283,7 @@ export function VideoImportDialog({
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 rows={6}
+                placeholder="Escreva aqui a sua legenda…"
                 className="text-sm"
               />
               <div className="flex flex-wrap gap-2">
