@@ -21,10 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { saveVideoRecord, getPostCopy } from "@/lib/videos.functions";
+import { saveVideoRecord } from "@/lib/videos.functions";
 import {
   SOCIAL_PLATFORMS,
-  buildCaption,
   platformInfo,
   type SocialPlatform,
 } from "@/lib/social-caption";
@@ -162,7 +161,7 @@ export function VideoImportDialog({
           <DialogDescription>
             Baixou o vídeo no VidEx? Traga para cá: o arquivo é salvo exatamente
             como está — sem cortes, sem perda de qualidade — apenas com os
-            metadados removidos. Já preparo a legenda da rede escolhida.
+            metadados removidos. A legenda você escreve do seu jeito.
           </DialogDescription>
         </DialogHeader>
 
@@ -189,8 +188,8 @@ export function VideoImportDialog({
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              A legenda com hashtags é gerada no formato ideal dessa rede e
-              copiada automaticamente ao final.
+              Depois de salvar, você escreve a legenda no espaço em branco e o
+              botão “Postar” leva direto para o upload dessa rede.
             </p>
           </div>
 
