@@ -128,14 +128,7 @@ export function VideoImportDialog({
 
       if (saved?.id) {
         setSavedId(saved.id);
-        try {
-          const kit = await postCopy({ data: { videoId: saved.id } });
-          const text = buildCaption(platform, kit);
-          setCaption(text);
-          await navigator.clipboard.writeText(text).catch(() => {});
-        } catch {
-          setCaption("");
-        }
+        setCaption("");
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Não consegui importar esse vídeo");
@@ -145,20 +138,13 @@ export function VideoImportDialog({
     }
   };
 
-  const regenerate = async (p: SocialPlatform) => {
+  const regenerate = (p: SocialPlatform) => {
     setPlatform(p);
-    if (!savedId) return;
-    try {
-      const kit = await postCopy({ data: { videoId: savedId } });
-      setCaption(buildCaption(p, kit));
-    } catch {
-      /* ignore */
-    }
   };
 
   const publish = (p: SocialPlatform) => {
     const info = platformInfo(p);
-    if (caption) {
+    if (caption.trim()) {
       navigator.clipboard.writeText(caption).catch(() => {});
       toast.success(`Legenda copiada! Cole na publicação do ${info.label}.`);
     }
