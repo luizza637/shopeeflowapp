@@ -170,18 +170,44 @@ export function VideoImportDialog({
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            <Upload className="h-5 w-5 text-primary" />
-            Importar vídeo
+            <Shield className="h-5 w-5 text-primary" />
+            Apagar metadados
           </DialogTitle>
           <DialogDescription>
-            Baixou o vídeo em outro app (VidEx, CapCut, galeria)? Traga para cá:
-          O vídeo será salvo exatamente como está, sem cortes, sem balões, sem
-          preço e sem perda de qualidade — apenas com os metadados removidos.
+            Baixou o vídeo no VidEx? Traga para cá: o arquivo é salvo exatamente
+            como está — sem cortes, sem perda de qualidade — apenas com os
+            metadados removidos. Já preparo a legenda da rede escolhida.
           </DialogDescription>
-
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Onde você vai postar?</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {SOCIAL_PLATFORMS.map((p) => (
+                <Button
+                  key={p.id}
+                  type="button"
+                  variant={p.id === platform ? "default" : "outline"}
+                  disabled={busy}
+                  onClick={() => regenerate(p.id)}
+                  className={
+                    p.id === platform
+                      ? "bg-gradient-primary shadow-glow hover:opacity-90"
+                      : ""
+                  }
+                >
+                  <span className="mr-1">{p.emoji}</span>
+                  <span className="truncate">{p.label}</span>
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A legenda com hashtags é gerada no formato ideal dessa rede e
+              copiada automaticamente ao final.
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="import-file">Arquivo de vídeo</Label>
             <Input
@@ -198,6 +224,7 @@ export function VideoImportDialog({
               </p>
             )}
           </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="import-title">Título (opcional)</Label>
