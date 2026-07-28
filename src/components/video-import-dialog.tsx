@@ -286,28 +286,13 @@ export function VideoImportDialog({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Legenda pronta para</Label>
-            <Select
-              value={platform}
-              onValueChange={(v) => regenerate(v as SocialPlatform)}
-              disabled={busy}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SOCIAL_PLATFORMS.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.emoji} {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Ao importar, a legenda com hashtags é gerada e copiada automaticamente.
+          {savedId && (
+            <p className="text-sm font-medium text-primary">
+              Pronto! Legenda de {platformInfo(platform).label} gerada e copiada.
             </p>
-          </div>
+          )}
+
+
 
           {savedId && (
             <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
