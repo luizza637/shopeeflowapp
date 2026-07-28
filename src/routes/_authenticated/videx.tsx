@@ -40,9 +40,10 @@ function VidexPage() {
     setBlocked(false);
     const t = setTimeout(() => {
       if (!loadedRef.current) setBlocked(true);
-    }, 6000);
+    }, 20000);
     return () => clearTimeout(t);
   }, [reloadKey]);
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
