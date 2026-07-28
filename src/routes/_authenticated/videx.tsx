@@ -92,44 +92,40 @@ function VidexPage() {
       </div>
 
       <Card className="overflow-hidden border-border/60">
-        {blocked ? (
-          <div className="flex flex-col items-center justify-center gap-4 px-6 py-20 text-center">
-            <Clapperboard className="h-10 w-10 text-muted-foreground" />
-            <div>
-              <p className="font-medium">O VidEx não permite ser exibido aqui dentro</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                O site bloqueia a exibição em janelas incorporadas. Abra em uma nova
-                aba, baixe o vídeo e volte para importar.
-              </p>
-            </div>
+        {blocked && (
+          <div className="flex flex-col items-center justify-center gap-3 border-b border-border/60 bg-surface/60 px-6 py-6 text-center">
+            <Clapperboard className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              O VidEx está demorando para carregar aqui dentro. Você pode esperar,
+              recarregar ou abrir em uma nova aba.
+            </p>
             <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild>
+              <Button size="sm" variant="outline" onClick={() => setReloadKey((k) => k + 1)}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Recarregar
+              </Button>
+              <Button size="sm" asChild>
                 <a href={VIDEX_URL} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Abrir VidEx
                 </a>
               </Button>
-              <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" />
-                Importar vídeo baixado
-              </Button>
             </div>
           </div>
-        ) : (
-          <iframe
-            key={reloadKey}
-            src={VIDEX_URL}
-            title="VidEx"
-            onLoad={() => {
-              loadedRef.current = true;
-            }}
-            onError={() => setBlocked(true)}
-            className="h-[75vh] w-full bg-background"
-            allow="clipboard-write; fullscreen"
-            referrerPolicy="no-referrer"
-          />
         )}
+        <iframe
+          key={reloadKey}
+          src={VIDEX_URL}
+          title="VidEx"
+          onLoad={() => {
+            loadedRef.current = true;
+            setBlocked(false);
+          }}
+          className="h-[75vh] w-full bg-background"
+          allow="clipboard-write; fullscreen; camera; microphone"
+        />
       </Card>
+
 
       <VideoImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
