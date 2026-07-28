@@ -38,6 +38,7 @@ import { AiContentDialog } from "@/components/ai-content-dialog";
 import { ImageStudioDialog } from "@/components/image-studio-dialog";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
 import { ShopeeSearchDialog } from "@/components/shopee-search-dialog";
+import { ShopeeTrending } from "@/components/shopee-trending";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/products")({
@@ -121,6 +122,8 @@ function ProductsPage() {
       </header>
 
       <ShopeeSearchDialog open={shopeeOpen} onOpenChange={setShopeeOpen} />
+
+      <ShopeeTrending />
 
       {/* Filters */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface/50 p-3 backdrop-blur-sm md:flex-row md:items-center">
