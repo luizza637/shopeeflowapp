@@ -1,4 +1,6 @@
 import { drawOverlays, type Overlay } from "./video-overlays";
+import { stripMp4Metadata } from "./mp4-metadata";
+
 
 // Importação de vídeo no navegador.
 //
