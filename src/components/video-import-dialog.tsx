@@ -29,9 +29,7 @@ import {
   type SocialPlatform,
 } from "@/lib/social-caption";
 import { Textarea } from "@/components/ui/textarea";
-import { sanitizeVideo, type SanitizeMode } from "@/lib/video-sanitize";
-import { VideoBalloonEditor } from "@/components/video-balloon-editor";
-import { newOverlay, type Overlay } from "@/lib/video-overlays";
+import { sanitizeVideo } from "@/lib/video-sanitize";
 
 export function VideoImportDialog({
   open,
@@ -50,8 +48,6 @@ export function VideoImportDialog({
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [productId, setProductId] = useState<string>("");
-  const [mode, setMode] = useState<SanitizeMode>("keep");
-  const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState("");
@@ -63,7 +59,6 @@ export function VideoImportDialog({
     setFile(null);
     setTitle("");
     setProductId("");
-    setOverlays([]);
     setProgress(0);
     setStep("");
     setCaption("");
@@ -85,15 +80,11 @@ export function VideoImportDialog({
     setProgress(0);
     try {
       setStep(
-        overlays.length
-          ? "Aplicando balões no vídeo…"
-          : mode === "keep"
-            ? "Limpando metadados (sem alterar o vídeo)…"
-            : "Reprocessando em 9:16…",
+        "Limpando metadados sem cortar, comprimir ou alterar o vídeo…",
       );
       const result = await sanitizeVideo(file, {
-        mode,
-        overlays,
+        mode: "keep",
+        overlays: [],
         onProgress: (r) => setProgress(r),
       });
 
@@ -133,7 +124,7 @@ export function VideoImportDialog({
       });
 
       qc.invalidateQueries({ queryKey: ["videos"] });
-      toast.success("Vídeo importado, sem metadados e pronto para postar!");
+      toast.success("Vídeo salvo sem metadados e sem alterar o arquivo!");
 
       if (saved?.id) {
         setSavedId(saved.id);
@@ -184,8 +175,8 @@ export function VideoImportDialog({
           </DialogTitle>
           <DialogDescription>
             Baixou o vídeo em outro app (VidEx, CapCut, galeria)? Traga para cá:
-            por padrão o vídeo é salvo exatamente como está, sem cortes nem
-            perda de qualidade, apenas sem os metadados do arquivo.
+          O vídeo será salvo exatamente como está, sem cortes, sem balões, sem
+          preço e sem perda de qualidade — apenas com os metadados removidos.
           </DialogDescription>
 
         </DialogHeader>
@@ -224,22 +215,7 @@ export function VideoImportDialog({
               <Label>Produto (opcional)</Label>
               <Select
                 value={productId}
-                onValueChange={(v) => {
-                  setProductId(v);
-                  const p = products.find((x: any) => x.id === v);
-                  const price = p?.price ?? p?.current_price;
-                  if (price && !overlays.some((o) => o.kind === "price")) {
-                    setOverlays((prev) => [
-                      ...prev,
-                      {
-                        ...newOverlay("price"),
-                        text: `R$ ${Number(price)
-                          .toFixed(2)
-                          .replace(".", ",")}`,
-                      },
-                    ]);
-                  }
-                }}
+                onValueChange={setProductId}
                 disabled={busy}
               >
                 <SelectTrigger>
@@ -256,42 +232,20 @@ export function VideoImportDialog({
             </div>
             <div className="space-y-2">
               <Label>Processamento</Label>
-              <Select
-                value={mode}
-                onValueChange={(v) => setMode(v as SanitizeMode)}
-                disabled={busy}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="keep">
-                    Manter original (só limpar)
-                  </SelectItem>
-                  <SelectItem value="reencode">
-                    Reprocessar em 9:16
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex min-h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                Apagar metadados somente
+              </div>
             </div>
           </div>
 
           <div className="flex items-start gap-2 rounded-xl border border-border bg-surface/50 p-3 text-xs text-muted-foreground">
             <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span>
-              {mode === "keep"
-                ? "O vídeo é enviado igual ao original — mesma duração, resolução e qualidade. Só os dados do arquivo (nome, data, origem) não vão junto."
-                : "O vídeo é reprocessado no navegador em tempo real (leva a duração do vídeo) e forçado para 1080x1920."}
+              O vídeo é enviado igual ao original — mesma duração, resolução e
+              qualidade. Só os dados do arquivo, como nome, data e origem, não
+              vão junto.
             </span>
           </div>
-
-
-          <VideoBalloonEditor
-            file={file}
-            overlays={overlays}
-            onChange={setOverlays}
-            disabled={busy}
-          />
 
           {busy && (
             <div className="space-y-2">
@@ -377,7 +331,7 @@ export function VideoImportDialog({
               ) : (
                 <Sparkles className="mr-2 h-4 w-4" />
               )}
-              Importar e limpar
+              Apagar metadados
             </Button>
           </div>
         </div>
