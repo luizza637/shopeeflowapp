@@ -25,11 +25,22 @@ type Offer = {
 const brl = (v: number | null) =>
   v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+// sortType da Shopee: 2 = mais vendidos, 4 = menor preço, 5 = maior comissão
 const TABS = [
   { key: "sales", label: "Mais vendidos", sortType: 2 },
   { key: "commission", label: "Maior comissão", sortType: 5 },
-  { key: "price", label: "Menor preço", sortType: 3 },
+  { key: "price", label: "Menor preço", sortType: 4 },
 ] as const;
+
+const sortOffers = (list: Offer[], key: (typeof TABS)[number]["key"]): Offer[] => {
+  const arr = [...list];
+  const asc = (v: number | null) => (v === null ? Number.POSITIVE_INFINITY : v);
+  const desc = (v: number | null) => (v === null ? Number.NEGATIVE_INFINITY : v);
+  if (key === "sales") return arr.sort((a, b) => desc(b.sales) - desc(a.sales));
+  if (key === "commission")
+    return arr.sort((a, b) => desc(b.commissionPercent) - desc(a.commissionPercent));
+  return arr.sort((a, b) => asc(a.price) - asc(b.price));
+};
 
 export function ShopeeTrending() {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("sales");
@@ -47,7 +58,7 @@ export function ShopeeTrending() {
     retry: false,
   });
 
-  const offers: Offer[] = (data as any)?.offers ?? [];
+  const offers: Offer[] = sortOffers(((data as any)?.offers ?? []) as Offer[], tab);
 
   const importMutation = useMutation({
     mutationFn: (o: Offer) =>
