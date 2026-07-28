@@ -73,8 +73,9 @@ function VidexPage() {
             className="bg-gradient-primary shadow-glow hover:opacity-90"
           >
             <Upload className="mr-2 h-4 w-4" />
-            Importar vídeo
+            Apagar metadados
           </Button>
+
         </div>
       </header>
 
