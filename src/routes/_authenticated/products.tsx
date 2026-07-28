@@ -102,17 +102,25 @@ function ProductsPage() {
             Salve produtos da Shopee, favorite os melhores e gere conteúdo com IA num clique.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-          className="bg-gradient-primary shadow-glow hover:opacity-90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar produto
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setShopeeOpen(true)}>
+            <ShoppingBag className="mr-2 h-4 w-4" />
+            Buscar na Shopee
+          </Button>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+            className="bg-gradient-primary shadow-glow hover:opacity-90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar produto
+          </Button>
+        </div>
       </header>
+
+      <ShopeeSearchDialog open={shopeeOpen} onOpenChange={setShopeeOpen} />
 
       {/* Filters */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface/50 p-3 backdrop-blur-sm md:flex-row md:items-center">
