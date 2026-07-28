@@ -123,6 +123,8 @@ function ProductsPage() {
 
       <ShopeeSearchDialog open={shopeeOpen} onOpenChange={setShopeeOpen} />
 
+      <ShopeeTrending />
+
       {/* Filters */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface/50 p-3 backdrop-blur-sm md:flex-row md:items-center">
         <div className="relative flex-1">
