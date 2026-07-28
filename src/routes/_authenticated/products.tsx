@@ -37,6 +37,7 @@ import { ProductFormDialog } from "@/components/product-form-dialog";
 import { AiContentDialog } from "@/components/ai-content-dialog";
 import { ImageStudioDialog } from "@/components/image-studio-dialog";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
+import { ShopeeSearchDialog } from "@/components/shopee-search-dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/products")({
