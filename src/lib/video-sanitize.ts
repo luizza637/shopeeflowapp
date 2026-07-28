@@ -186,11 +186,18 @@ export async function sanitizeVideo(
     if (mode === "keep" && overlays.length === 0) {
       opts.onProgress?.(0.3);
       const thumbnailBase64 = await grabThumbnail(video);
-      opts.onProgress?.(0.8);
-      // Blob novo, sem nome de arquivo nem data de modificação do original.
+      opts.onProgress?.(0.7);
+      // Limpeza real: removemos as caixas de metadados de dentro do MP4 e
+      // zeramos as datas de criação — sem tocar no vídeo em si.
       const bytes = await file.arrayBuffer();
       const mimeType = file.type || "video/mp4";
-      const blob = new Blob([bytes], { type: mimeType });
+      let cleaned: ArrayBuffer = bytes;
+      try {
+        cleaned = stripMp4Metadata(bytes) ?? bytes;
+      } catch {
+        cleaned = bytes;
+      }
+      const blob = new Blob([cleaned], { type: mimeType });
       opts.onProgress?.(1);
       return {
         blob,
@@ -201,6 +208,7 @@ export async function sanitizeVideo(
         thumbnailBase64,
       };
     }
+
 
     // ---- render no canvas (9:16 forçado ou tamanho original com balões) ----
     const originalSize = getScaledOutputSize(video.videoWidth, video.videoHeight);
