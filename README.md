@@ -1,14 +1,18 @@
-# Welcome to your Lovable project
+# Shopee Video Studio
+
+Criar um aplicativo no estilo VidEx, que fosse integrado à Shopee e que eu conseguisse criar vídeos, apagar metadados, é, gerar vídeos com legenda, hããã, criar imagens, ééé, fazer alguma integração, né, com alguma API e publicar direto na, na Shopee, publicar direto no Instagram, publicar direto no TikTok. Ééé, antes da gente começar, eu queria saber se isso é possível quero trabalhar de afiliada na shoee tem como?
 
 This project was built with [Lovable](https://lovable.dev).
 
+**Live app**: https://shopeeflowapp.lovable.app
+
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/836e12fa-8f55-4340-8193-19469aafd4fc).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +24,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
