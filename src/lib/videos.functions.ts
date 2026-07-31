@@ -92,6 +92,8 @@ const SaveInput = z.object({
   mimeType: z.string().optional(),
   sizeBytes: z.number().optional(),
   thumbnailBase64: z.string().optional(),
+  caption: z.string().max(3000).optional(),
+  hashtags: z.string().max(1000).optional(),
 });
 
 function base64ToBytes(b64: string): Uint8Array {
