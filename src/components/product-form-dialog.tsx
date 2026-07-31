@@ -223,8 +223,7 @@ export function ProductFormDialog({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label htmlFor="url">Link Shopee</Label>
               <Input
                 id="url"
@@ -234,18 +233,9 @@ export function ProductFormDialog({
                 onPaste={(e) => onPasteLink(e, "url")}
                 placeholder="Cole o link e os dados vêm sozinhos"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="affiliate_url">Link de afiliado</Label>
-              <Input
-                id="affiliate_url"
-                type="url"
-                value={form.affiliate_url ?? ""}
-                onChange={(e) => setForm({ ...form, affiliate_url: e.target.value })}
-                onPaste={(e) => onPasteLink(e, "affiliate_url")}
-                placeholder="https://s.shopee.com.br/..."
-              />
-            </div>
+              <p className="text-xs text-muted-foreground">
+                Use apenas o link normal do produto. O link de afiliado é criado automaticamente.
+              </p>
           </div>
 
           <div className="space-y-3 rounded-lg border border-border bg-surface/40 px-4 py-3">

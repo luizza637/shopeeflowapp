@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Upload, Shield, Sparkles, Copy, Share2, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { saveVideoRecord } from "@/lib/videos.functions";
+import { saveShopeeProductFromLink } from "@/lib/shopee-import.functions";
 import {
   SOCIAL_PLATFORMS,
   platformInfo,
@@ -56,12 +57,15 @@ export function VideoImportDialog({
 }) {
   const qc = useQueryClient();
   const saveRec = useServerFn(saveVideoRecord);
+  const saveProductFromLink = useServerFn(saveShopeeProductFromLink);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [productId, setProductId] = useState<string>("");
+  const [productLink, setProductLink] = useState("");
+  const [linkedProductName, setLinkedProductName] = useState("");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState("");
@@ -71,10 +75,24 @@ export function VideoImportDialog({
   const [cleanName, setCleanName] = useState("");
   const [cleanUrl, setCleanUrl] = useState<string | null>(null);
 
+  const productMutation = useMutation({
+    mutationFn: (url: string) => saveProductFromLink({ data: { url } }),
+    onSuccess: (product) => {
+      setProductId(product.id);
+      setLinkedProductName(product.name);
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Produto salvo na vitrine e vinculado ao vídeo");
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || "Não consegui ler esse link da Shopee"),
+  });
+
   const reset = () => {
     setFile(null);
     setTitle("");
     setProductId("");
+    setProductLink("");
+    setLinkedProductName("");
     setProgress(0);
     setStep("");
     setCaption("");
@@ -86,8 +104,13 @@ export function VideoImportDialog({
 
   const close = () => {
     if (busy) return;
-    reset();
     onOpenChange(false);
+  };
+
+  const linkProduct = () => {
+    const url = productLink.trim();
+    if (!url) return toast.error("Cole o link normal do produto da Shopee");
+    productMutation.mutate(url);
   };
 
   /** Nome novo e aleatório, com a data de hoje — como se o arquivo tivesse nascido agora. */
@@ -289,33 +312,67 @@ export function VideoImportDialog({
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Produto (opcional)</Label>
-              <Select
-                value={productId}
-                onValueChange={setProductId}
-                disabled={busy}
+          <div className="space-y-2">
+            <Label htmlFor="import-product-link">Link do produto da Shopee</Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                id="import-product-link"
+                type="url"
+                value={productLink}
+                disabled={busy || productMutation.isPending}
+                onChange={(event) => setProductLink(event.target.value)}
+                onPaste={(event) => {
+                  const value = event.clipboardData.getData("text").trim();
+                  if (/^https?:\/\//i.test(value)) {
+                    setProductLink(value);
+                    setTimeout(() => productMutation.mutate(value), 0);
+                  }
+                }}
+                placeholder="Cole somente o link normal da Shopee"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={linkProduct}
+                disabled={busy || productMutation.isPending || !productLink.trim()}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Vincular a um produto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {productMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Vincular produto
+              </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {linkedProductName
+                ? `Vinculado: ${linkedProductName}`
+                : "A foto e os dados são puxados, o link de afiliado é criado automaticamente e o produto entra na sua vitrine."}
+            </p>
+          </div>
+
+          {products.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Ou escolha um produto já salvo</Label>
+                <Select
+                  value={productId}
+                  onValueChange={(value) => {
+                    setProductId(value);
+                    setLinkedProductName(products.find((p) => p.id === value)?.name ?? "");
+                  }}
+                  disabled={busy}
+                >
+                  <SelectTrigger><SelectValue placeholder="Vincular a um produto" /></SelectTrigger>
+                  <SelectContent>
+                    {products.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             <div className="space-y-2">
               <Label>Processamento</Label>
               <div className="flex min-h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
                 Apagar metadados somente
               </div>
             </div>
-          </div>
+            </div>
+          )}
 
           <div className="flex items-start gap-2 rounded-xl border border-border bg-surface/50 p-3 text-xs text-muted-foreground">
             <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -388,11 +445,16 @@ export function VideoImportDialog({
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={close} disabled={busy}>
-              {savedId ? "Fechar" : "Cancelar"}
+              Fechar e continuar depois
             </Button>
+            {(file || caption || productLink) && !savedId && (
+              <Button type="button" variant="ghost" onClick={reset} disabled={busy}>
+                Limpar
+              </Button>
+            )}
             <Button
               onClick={handleImport}
-              disabled={busy || !file}
+              disabled={busy || productMutation.isPending || !file}
               className="bg-gradient-primary shadow-glow hover:opacity-90"
             >
               {busy ? (

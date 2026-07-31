@@ -53,8 +53,8 @@ function VidexPage() {
             VidEx
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Crie o vídeo no VidEx e traga para cá: removemos os metadados, ajustamos
-            para 9:16 e salvamos na sua biblioteca com Kit de Post.
+            Crie o vídeo no VidEx e traga para cá: removemos somente os metadados,
+            salvamos a legenda e vinculamos o produto da Shopee pelo link.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
