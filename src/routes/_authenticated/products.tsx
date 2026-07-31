@@ -38,6 +38,7 @@ import { AiContentDialog } from "@/components/ai-content-dialog";
 import { ImageStudioDialog } from "@/components/image-studio-dialog";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
 import { ShopeeSearchDialog } from "@/components/shopee-search-dialog";
+import { ShopeeCollectionDialog } from "@/components/shopee-collection-dialog";
 import { ShopeeTrending } from "@/components/shopee-trending";
 import { cn } from "@/lib/utils";
 
