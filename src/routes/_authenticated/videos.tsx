@@ -10,7 +10,7 @@ import {
   Sparkles,
   Play,
   Copy,
-  Package,
+  
   CheckSquare,
   Square,
   Upload,
