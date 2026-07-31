@@ -347,9 +347,11 @@ export type Database = {
       }
       videos: {
         Row: {
+          caption: string | null
           created_at: string
           duration_seconds: number | null
           generation_id: string | null
+          hashtags: string | null
           height: number | null
           id: string
           mime_type: string | null
@@ -366,9 +368,11 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          caption?: string | null
           created_at?: string
           duration_seconds?: number | null
           generation_id?: string | null
+          hashtags?: string | null
           height?: number | null
           id?: string
           mime_type?: string | null
@@ -385,9 +389,11 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          caption?: string | null
           created_at?: string
           duration_seconds?: number | null
           generation_id?: string | null
+          hashtags?: string | null
           height?: number | null
           id?: string
           mime_type?: string | null
