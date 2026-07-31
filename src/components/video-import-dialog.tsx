@@ -300,10 +300,22 @@ export function VideoImportDialog({
           )}
 
           {savedId && (
-            <p className="text-sm font-medium text-primary">
-              Pronto! Escreva sua legenda abaixo para o {platformInfo(platform).label}.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-primary">
+                Pronto! Escreva sua legenda abaixo para o {platformInfo(platform).label}.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface/50 p-3">
+                <span className="min-w-[160px] flex-1 truncate text-xs text-muted-foreground">
+                  Novo nome do arquivo: <span className="font-mono">{cleanName}</span>
+                </span>
+                <Button size="sm" variant="outline" onClick={downloadClean} disabled={!cleanUrl}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar vídeo limpo
+                </Button>
+              </div>
+            </div>
           )}
+
 
           {savedId && (
             <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
