@@ -501,14 +501,21 @@ function VideoCard({
         <p className="line-clamp-2 text-sm font-medium">
           {video.title ?? video.products?.name ?? "Sem título"}
         </p>
+        {(video.caption || video.hashtags) && (
+          <div className="rounded-lg border border-border bg-surface/60 p-2">
+            <p className="line-clamp-3 whitespace-pre-line text-[11px] text-muted-foreground">
+              {[video.caption, video.hashtags].filter(Boolean).join("\n")}
+            </p>
+          </div>
+        )}
         <Button
           size="sm"
           disabled={busy}
           onClick={onKit}
           className="w-full bg-gradient-primary shadow-glow hover:opacity-90"
         >
-          <Package className="mr-2 h-4 w-4" />
-          Kit de post
+          <Download className="mr-2 h-4 w-4" />
+          Baixar vídeo + legenda
         </Button>
         <div className="grid grid-cols-3 gap-1">
           {SOCIAL_PLATFORMS.map((p) => (
