@@ -180,3 +180,27 @@ export const deleteVideo = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+const CaptionInput = z.object({
+  id: z.string().uuid(),
+  caption: z.string().max(3000).optional(),
+  hashtags: z.string().max(1000).optional(),
+});
+
+/** Salva/edita a legenda e as hashtags que acompanham o vídeo */
+export const updateVideoCaption = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CaptionInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("videos")
+      .update({
+        caption: data.caption?.trim() || null,
+        hashtags: data.hashtags?.trim() || null,
+      })
+      .eq("id", data.id)
+      .eq("user_id", userId);
+    if (error) throw error;
+    return { ok: true };
+  });
