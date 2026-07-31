@@ -145,6 +145,8 @@ export const saveVideoRecord = createServerFn({ method: "POST" })
         height: data.height ?? null,
         mime_type: data.mimeType ?? null,
         size_bytes: data.sizeBytes ?? null,
+        caption: data.caption?.trim() || null,
+        hashtags: data.hashtags?.trim() || null,
       })
       .select()
       .single();
