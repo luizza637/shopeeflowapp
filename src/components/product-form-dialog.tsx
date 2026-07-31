@@ -78,30 +78,48 @@ export function ProductFormDialog({
 }) {
   const [form, setForm] = useState<Product>(empty);
   const save = useServerFn(upsertProduct);
-  const importLink = useServerFn(importFromShopeeLink);
+  const importLink = useServerFn(lookupShopeeProduct);
 
   const importMutation = useMutation({
     mutationFn: (url: string) => importLink({ data: { url } }),
     onSuccess: (r: any) => {
       setForm((f) => ({
         ...f,
+        name: r.name || f.name,
         image_url: r.imageUrl ?? f.image_url,
-        name: f.name?.trim() ? f.name : (r.name ?? ""),
-        price: f.price ?? r.price ?? null,
-        shop_name: f.shop_name?.trim() ? f.shop_name : (r.shopName ?? ""),
+        price: r.price ?? f.price ?? null,
+        original_price: r.originalPrice ?? f.original_price ?? null,
+        discount_percent: r.discountPercent ?? f.discount_percent ?? null,
+        commission_percent: r.commissionPercent ?? f.commission_percent ?? null,
+        sales_count: r.salesCount ?? f.sales_count ?? null,
+        rating: r.rating ?? f.rating ?? null,
+        shop_name: r.shopName ?? f.shop_name ?? "",
+        url: r.productLink ?? f.url ?? "",
+        affiliate_url: r.affiliateUrl ?? f.affiliate_url ?? "",
       }));
-      toast.success("Foto importada do link da Shopee");
+      toast.success("Dados do produto puxados do link da Shopee");
     },
     onError: (e: any) => toast.error(e.message ?? "Não consegui importar do link"),
   });
 
-  const runImport = () => {
-    const url = (form.url || form.affiliate_url || "").trim();
+  const runImport = (raw?: string) => {
+    const url = (raw ?? form.url ?? form.affiliate_url ?? "").trim();
     if (!url) {
       toast.error("Cole primeiro o link da Shopee");
       return;
     }
     importMutation.mutate(url);
+  };
+
+  /** Ao colar um link da Shopee, já puxa tudo automaticamente. */
+  const onPasteLink = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    field: "url" | "affiliate_url",
+  ) => {
+    const text = e.clipboardData.getData("text").trim();
+    if (!/^https?:\/\//i.test(text)) return;
+    setForm((f) => ({ ...f, [field]: text }));
+    setTimeout(() => runImport(text), 0);
   };
 
   const fileRef = useRef<HTMLInputElement>(null);
