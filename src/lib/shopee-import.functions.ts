@@ -32,14 +32,25 @@ export const saveShopeeProductFromLink = createServerFn({ method: "POST" })
       value === null || value === undefined ? null : Number(value.toFixed(2));
     const productUrl = product.productLink || data.url;
 
-    const { data: existing } = await context.supabase
+    const { data: existingByUrl } = await context.supabase
       .from("products")
       .select("id, name")
       .eq("user_id", context.userId)
-      .or(`url.eq.${productUrl},affiliate_url.eq.${product.affiliateUrl ?? ""}`)
+      .eq("url", productUrl)
       .limit(1)
       .maybeSingle();
-    if (existing) return existing;
+    if (existingByUrl) return existingByUrl;
+
+    if (product.affiliateUrl) {
+      const { data: existingByAffiliate } = await context.supabase
+        .from("products")
+        .select("id, name")
+        .eq("user_id", context.userId)
+        .eq("affiliate_url", product.affiliateUrl)
+        .limit(1)
+        .maybeSingle();
+      if (existingByAffiliate) return existingByAffiliate;
+    }
 
     const { data: saved, error } = await context.supabase
       .from("products")
@@ -52,9 +63,14 @@ export const saveShopeeProductFromLink = createServerFn({ method: "POST" })
         price: round(product.price),
         original_price: round(product.originalPrice),
         discount_percent:
-          product.discountPercent === null ? null : Math.round(product.discountPercent),
+          product.discountPercent === null || product.discountPercent === undefined
+            ? null
+            : Math.round(product.discountPercent),
         commission_percent: round(product.commissionPercent),
-        sales_count: product.salesCount === null ? null : Math.round(product.salesCount),
+        sales_count:
+          product.salesCount === null || product.salesCount === undefined
+            ? null
+            : Math.round(product.salesCount),
         rating: round(product.rating),
         shop_name: product.shopName,
       })

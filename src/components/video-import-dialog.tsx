@@ -454,7 +454,7 @@ export function VideoImportDialog({
             )}
             <Button
               onClick={handleImport}
-              disabled={busy || !file}
+              disabled={busy || productMutation.isPending || !file}
               className="bg-gradient-primary shadow-glow hover:opacity-90"
             >
               {busy ? (
