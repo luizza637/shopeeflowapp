@@ -27,7 +27,9 @@ export const getPostCopy = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data: video, error } = await supabase
       .from("videos")
-      .select("id, title, product_id, generation_id, products(name, url, affiliate_url)")
+      .select(
+        "id, title, caption, hashtags, product_id, generation_id, products(name, url, affiliate_url)",
+      )
       .eq("id", data.videoId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -35,7 +37,13 @@ export const getPostCopy = createServerFn({ method: "GET" })
     if (!video) throw new Error("Vídeo não encontrado");
 
     let gen: { caption: string | null; hashtags: string | null } | null = null;
-    if (video.generation_id) {
+    if ((video as any).caption?.trim() || (video as any).hashtags?.trim()) {
+      gen = {
+        caption: (video as any).caption ?? null,
+        hashtags: (video as any).hashtags ?? null,
+      };
+    }
+    if (!gen && video.generation_id) {
       const { data: g } = await supabase
         .from("ai_generations")
         .select("caption, hashtags")
