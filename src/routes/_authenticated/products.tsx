@@ -64,6 +64,7 @@ function ProductsPage() {
   const [sort, setSort] = useState<SortKey>("recent");
   const [formOpen, setFormOpen] = useState(false);
   const [shopeeOpen, setShopeeOpen] = useState(false);
+  const [collectionOpen, setCollectionOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [aiProduct, setAiProduct] = useState<any | null>(null);
   const [imgProduct, setImgProduct] = useState<any | null>(null);
