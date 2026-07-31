@@ -30,6 +30,21 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { sanitizeVideo } from "@/lib/video-sanitize";
 
+/** Separa o texto colado em legenda + hashtags */
+export function splitCaption(text: string) {
+  const raw = (text ?? "").trim();
+  if (!raw) return { caption: "", hashtags: "" };
+  const tags = Array.from(
+    new Set((raw.match(/#[\p{L}\p{N}_]+/gu) ?? []).map((t) => t.trim())),
+  ).join(" ");
+  const caption = raw
+    .replace(/#[\p{L}\p{N}_]+/gu, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { caption, hashtags: tags };
+}
+
 export function VideoImportDialog({
   open,
   onOpenChange,
@@ -41,7 +56,7 @@ export function VideoImportDialog({
 }) {
   const qc = useQueryClient();
   const saveRec = useServerFn(saveVideoRecord);
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -69,7 +84,6 @@ export function VideoImportDialog({
     setCleanUrl(null);
   };
 
-
   const close = () => {
     if (busy) return;
     reset();
@@ -87,6 +101,15 @@ export function VideoImportDialog({
     return `VID_${stamp}_${rand}.${ext}`;
   };
 
+  const triggerDownload = (url: string, name: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   const handleImport = async () => {
     if (!file) {
       toast.error("Escolha um vídeo");
@@ -95,9 +118,7 @@ export function VideoImportDialog({
     setBusy(true);
     setProgress(0);
     try {
-      setStep(
-        "Limpando metadados sem cortar, comprimir ou alterar o vídeo…",
-      );
+      setStep("Limpando metadados sem cortar, comprimir ou alterar o vídeo…");
       const result = await sanitizeVideo(file, {
         mode: "keep",
         overlays: [],
@@ -121,6 +142,8 @@ export function VideoImportDialog({
         });
       if (upErr) throw upErr;
 
+      const parts = splitCaption(caption);
+
       const saved: any = await saveRec({
         data: {
           productId: productId || undefined,
@@ -135,19 +158,28 @@ export function VideoImportDialog({
           mimeType: result.mimeType,
           sizeBytes: result.blob.size,
           thumbnailBase64: result.thumbnailBase64,
+          caption: parts.caption || undefined,
+          hashtags: parts.hashtags || undefined,
         },
       });
 
       qc.invalidateQueries({ queryKey: ["videos"] });
       setCleanName(newName);
       if (cleanUrl) URL.revokeObjectURL(cleanUrl);
-      setCleanUrl(URL.createObjectURL(result.blob));
-      toast.success("Metadados apagados e arquivo renomeado!");
+      const url = URL.createObjectURL(result.blob);
+      setCleanUrl(url);
 
-      if (saved?.id) {
-        setSavedId(saved.id);
-        setCaption("");
+      // Baixa o vídeo limpo automaticamente, já com nome novo
+      triggerDownload(url, newName);
+
+      if (caption.trim()) {
+        navigator.clipboard.writeText(caption.trim()).catch(() => {});
+        toast.success("Vídeo limpo baixado e legenda copiada!");
+      } else {
+        toast.success("Metadados apagados e vídeo baixado!");
       }
+
+      if (saved?.id) setSavedId(saved.id);
     } catch (e: any) {
       toast.error(e?.message ?? "Não consegui importar esse vídeo");
     } finally {
@@ -158,21 +190,13 @@ export function VideoImportDialog({
 
   const downloadClean = () => {
     if (!cleanUrl) return;
-    const a = document.createElement("a");
-    a.href = cleanUrl;
-    a.download = cleanName || "video.mp4";
-    a.click();
-  };
-
-
-  const regenerate = (p: SocialPlatform) => {
-    setPlatform(p);
+    triggerDownload(cleanUrl, cleanName || "video.mp4");
   };
 
   const publish = (p: SocialPlatform) => {
     const info = platformInfo(p);
     if (caption.trim()) {
-      navigator.clipboard.writeText(caption).catch(() => {});
+      navigator.clipboard.writeText(caption.trim()).catch(() => {});
       toast.success(`Legenda copiada! Cole na publicação do ${info.label}.`);
     }
     window.open(info.uploadUrl, "_blank", "noopener,noreferrer");
@@ -187,9 +211,10 @@ export function VideoImportDialog({
             Apagar metadados
           </DialogTitle>
           <DialogDescription>
-            Baixou o vídeo no VidEx? Traga para cá: o arquivo é salvo exatamente
-            como está — sem cortes, sem perda de qualidade — apenas com os
-            metadados removidos. A legenda você escreve do seu jeito.
+            Cole aqui a legenda que você pegou no VidEx, escolha o vídeo e pronto:
+            o arquivo é salvo sem cortes nem perda de qualidade, com metadados
+            removidos, nome novo, baixado na hora e a legenda guardada junto do
+            vídeo.
           </DialogDescription>
         </DialogHeader>
 
@@ -203,7 +228,7 @@ export function VideoImportDialog({
                   type="button"
                   variant={p.id === platform ? "default" : "outline"}
                   disabled={busy}
-                  onClick={() => regenerate(p.id)}
+                  onClick={() => setPlatform(p.id)}
                   className={
                     p.id === platform
                       ? "bg-gradient-primary shadow-glow hover:opacity-90"
@@ -215,9 +240,24 @@ export function VideoImportDialog({
                 </Button>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="import-caption">
+              Legenda + hashtags (cole a do VidEx)
+            </Label>
+            <Textarea
+              id="import-caption"
+              value={caption}
+              disabled={busy}
+              rows={6}
+              placeholder="Cole aqui a legenda com o link e as hashtags…"
+              onChange={(e) => setCaption(e.target.value)}
+              className="text-sm"
+            />
             <p className="text-xs text-muted-foreground">
-              Depois de salvar, você escreve a legenda no espaço em branco e o
-              botão “Postar” leva direto para o upload dessa rede.
+              Ela fica salva junto do vídeo: aparece na aba Vídeos e já vem
+              preenchida no agendamento.
             </p>
           </div>
 
@@ -237,7 +277,6 @@ export function VideoImportDialog({
               </p>
             )}
           </div>
-
 
           <div className="space-y-2">
             <Label htmlFor="import-title">Título (opcional)</Label>
@@ -300,44 +339,38 @@ export function VideoImportDialog({
           )}
 
           {savedId && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-primary">
-                Pronto! Escreva sua legenda abaixo para o {platformInfo(platform).label}.
-              </p>
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface/50 p-3">
-                <span className="min-w-[160px] flex-1 truncate text-xs text-muted-foreground">
-                  Novo nome do arquivo: <span className="font-mono">{cleanName}</span>
-                </span>
-                <Button size="sm" variant="outline" onClick={downloadClean} disabled={!cleanUrl}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar vídeo limpo
-                </Button>
-              </div>
-            </div>
-          )}
-
-
-          {savedId && (
             <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
-              <Textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={6}
-                placeholder="Escreva aqui a sua legenda…"
-                className="text-sm"
-              />
-              <div className="flex flex-wrap gap-2">
+              <p className="text-sm font-medium text-primary">
+                Pronto! Vídeo limpo baixado e legenda salva para o{" "}
+                {platformInfo(platform).label}.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="min-w-[160px] flex-1 truncate text-xs text-muted-foreground">
+                  Novo nome: <span className="font-mono">{cleanName}</span>
+                </span>
                 <Button
                   size="sm"
                   variant="outline"
+                  onClick={downloadClean}
+                  disabled={!cleanUrl}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar novamente
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!caption.trim()}
                   onClick={() => {
-                    navigator.clipboard.writeText(caption);
+                    navigator.clipboard.writeText(caption.trim());
                     toast.success("Legenda copiada!");
                   }}
                 >
                   <Copy className="mr-2 h-4 w-4" />
                   Copiar legenda
                 </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {SOCIAL_PLATFORMS.map((p) => (
                   <Button
                     key={p.id}
@@ -367,7 +400,7 @@ export function VideoImportDialog({
               ) : (
                 <Sparkles className="mr-2 h-4 w-4" />
               )}
-              Apagar metadados
+              Apagar metadados e baixar
             </Button>
           </div>
         </div>
@@ -375,3 +408,5 @@ export function VideoImportDialog({
     </Dialog>
   );
 }
+
+export { Upload };
