@@ -110,6 +110,10 @@ function ProductsPage() {
             <ShoppingBag className="mr-2 h-4 w-4" />
             Buscar na Shopee
           </Button>
+          <Button variant="outline" onClick={() => setCollectionOpen(true)}>
+            <Layers className="mr-2 h-4 w-4" />
+            Importar coleção
+          </Button>
           <Button
             onClick={() => {
               setEditing(null);
@@ -124,6 +128,7 @@ function ProductsPage() {
       </header>
 
       <ShopeeSearchDialog open={shopeeOpen} onOpenChange={setShopeeOpen} />
+      <ShopeeCollectionDialog open={collectionOpen} onOpenChange={setCollectionOpen} />
 
       <ShopeeTrending />
 
