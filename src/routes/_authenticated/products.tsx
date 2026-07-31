@@ -16,6 +16,7 @@ import {
   Wand2,
   ImageIcon,
   Video,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import { AiContentDialog } from "@/components/ai-content-dialog";
 import { ImageStudioDialog } from "@/components/image-studio-dialog";
 import { VideoStudioDialog } from "@/components/video-studio-dialog";
 import { ShopeeSearchDialog } from "@/components/shopee-search-dialog";
+import { ShopeeCollectionDialog } from "@/components/shopee-collection-dialog";
 import { ShopeeTrending } from "@/components/shopee-trending";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +65,7 @@ function ProductsPage() {
   const [sort, setSort] = useState<SortKey>("recent");
   const [formOpen, setFormOpen] = useState(false);
   const [shopeeOpen, setShopeeOpen] = useState(false);
+  const [collectionOpen, setCollectionOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [aiProduct, setAiProduct] = useState<any | null>(null);
   const [imgProduct, setImgProduct] = useState<any | null>(null);
@@ -108,6 +111,10 @@ function ProductsPage() {
             <ShoppingBag className="mr-2 h-4 w-4" />
             Buscar na Shopee
           </Button>
+          <Button variant="outline" onClick={() => setCollectionOpen(true)}>
+            <Layers className="mr-2 h-4 w-4" />
+            Importar coleção
+          </Button>
           <Button
             onClick={() => {
               setEditing(null);
@@ -122,6 +129,7 @@ function ProductsPage() {
       </header>
 
       <ShopeeSearchDialog open={shopeeOpen} onOpenChange={setShopeeOpen} />
+      <ShopeeCollectionDialog open={collectionOpen} onOpenChange={setCollectionOpen} />
 
       <ShopeeTrending />
 

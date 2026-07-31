@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Download, Upload } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
-import { importFromShopeeLink } from "@/lib/import-product.functions";
+import { lookupShopeeProduct } from "@/lib/shopee-import.functions";
 import { uploadProductPhoto } from "@/lib/images.functions";
 import { WebImageSearch } from "@/components/web-image-search";
 
@@ -78,30 +78,48 @@ export function ProductFormDialog({
 }) {
   const [form, setForm] = useState<Product>(empty);
   const save = useServerFn(upsertProduct);
-  const importLink = useServerFn(importFromShopeeLink);
+  const importLink = useServerFn(lookupShopeeProduct);
 
   const importMutation = useMutation({
     mutationFn: (url: string) => importLink({ data: { url } }),
     onSuccess: (r: any) => {
       setForm((f) => ({
         ...f,
+        name: r.name || f.name,
         image_url: r.imageUrl ?? f.image_url,
-        name: f.name?.trim() ? f.name : (r.name ?? ""),
-        price: f.price ?? r.price ?? null,
-        shop_name: f.shop_name?.trim() ? f.shop_name : (r.shopName ?? ""),
+        price: r.price ?? f.price ?? null,
+        original_price: r.originalPrice ?? f.original_price ?? null,
+        discount_percent: r.discountPercent ?? f.discount_percent ?? null,
+        commission_percent: r.commissionPercent ?? f.commission_percent ?? null,
+        sales_count: r.salesCount ?? f.sales_count ?? null,
+        rating: r.rating ?? f.rating ?? null,
+        shop_name: r.shopName ?? f.shop_name ?? "",
+        url: r.productLink ?? f.url ?? "",
+        affiliate_url: r.affiliateUrl ?? f.affiliate_url ?? "",
       }));
-      toast.success("Foto importada do link da Shopee");
+      toast.success("Dados do produto puxados do link da Shopee");
     },
     onError: (e: any) => toast.error(e.message ?? "Não consegui importar do link"),
   });
 
-  const runImport = () => {
-    const url = (form.url || form.affiliate_url || "").trim();
+  const runImport = (raw?: string) => {
+    const url = (raw ?? form.url ?? form.affiliate_url ?? "").trim();
     if (!url) {
       toast.error("Cole primeiro o link da Shopee");
       return;
     }
     importMutation.mutate(url);
+  };
+
+  /** Ao colar um link da Shopee, já puxa tudo automaticamente. */
+  const onPasteLink = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    field: "url" | "affiliate_url",
+  ) => {
+    const text = e.clipboardData.getData("text").trim();
+    if (!/^https?:\/\//i.test(text)) return;
+    setForm((f) => ({ ...f, [field]: text }));
+    setTimeout(() => runImport(text), 0);
   };
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -213,7 +231,8 @@ export function ProductFormDialog({
                 type="url"
                 value={form.url ?? ""}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
-                placeholder="https://shopee.com.br/..."
+                onPaste={(e) => onPasteLink(e, "url")}
+                placeholder="Cole o link e os dados vêm sozinhos"
               />
             </div>
             <div className="space-y-2">
@@ -223,6 +242,7 @@ export function ProductFormDialog({
                 type="url"
                 value={form.affiliate_url ?? ""}
                 onChange={(e) => setForm({ ...form, affiliate_url: e.target.value })}
+                onPaste={(e) => onPasteLink(e, "affiliate_url")}
                 placeholder="https://s.shopee.com.br/..."
               />
             </div>
@@ -273,15 +293,16 @@ export function ProductFormDialog({
 
             <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
               <div className="min-w-[180px] flex-1">
-                <p className="text-sm font-medium">Importar foto do link</p>
+                <p className="text-sm font-medium">Puxar dados do link</p>
                 <p className="text-xs text-muted-foreground">
-                  Tenta baixar a foto oficial pelo link — pode falhar se a Shopee bloquear.
+                  Cole o link da Shopee acima: foto, nome, preço, comissão e link de afiliada
+                  entram sozinhos.
                 </p>
               </div>
               <Button
                 type="button"
                 variant="ghost"
-                onClick={runImport}
+                onClick={() => runImport()}
                 disabled={importMutation.isPending}
               >
                 {importMutation.isPending ? (
@@ -289,7 +310,7 @@ export function ProductFormDialog({
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-                Tentar pelo link
+                Puxar pelo link
               </Button>
             </div>
           </div>

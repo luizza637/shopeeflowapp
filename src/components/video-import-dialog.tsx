@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Upload, Shield, Sparkles, Copy, Share2 } from "lucide-react";
+import { Loader2, Upload, Shield, Sparkles, Copy, Share2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,8 @@ export function VideoImportDialog({
   const [platform, setPlatform] = useState<SocialPlatform>("shopee");
   const [caption, setCaption] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [cleanName, setCleanName] = useState("");
+  const [cleanUrl, setCleanUrl] = useState<string | null>(null);
 
   const reset = () => {
     setFile(null);
@@ -62,12 +64,27 @@ export function VideoImportDialog({
     setStep("");
     setCaption("");
     setSavedId(null);
+    setCleanName("");
+    if (cleanUrl) URL.revokeObjectURL(cleanUrl);
+    setCleanUrl(null);
   };
+
 
   const close = () => {
     if (busy) return;
     reset();
     onOpenChange(false);
+  };
+
+  /** Nome novo e aleatório, com a data de hoje — como se o arquivo tivesse nascido agora. */
+  const freshName = (ext: string) => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(
+      d.getMinutes(),
+    )}${p(d.getSeconds())}`;
+    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `VID_${stamp}_${rand}.${ext}`;
   };
 
   const handleImport = async () => {
@@ -93,9 +110,8 @@ export function VideoImportDialog({
       if (!userId) throw new Error("Sessão expirada");
 
       const ext = result.mimeType.includes("webm") ? "webm" : "mp4";
-      const path = `${userId}/importados/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}.${ext}`;
+      const newName = freshName(ext);
+      const path = `${userId}/importados/${newName}`;
 
       const { error: upErr } = await supabase.storage
         .from("product-videos")
@@ -111,7 +127,7 @@ export function VideoImportDialog({
           title:
             title ||
             products.find((p) => p.id === productId)?.name ||
-            file.name.replace(/\.[^.]+$/, ""),
+            newName.replace(/\.[^.]+$/, ""),
           storagePath: path,
           durationSeconds: result.durationSeconds,
           width: result.width,
@@ -123,7 +139,10 @@ export function VideoImportDialog({
       });
 
       qc.invalidateQueries({ queryKey: ["videos"] });
-      toast.success("Vídeo salvo sem metadados e sem alterar o arquivo!");
+      setCleanName(newName);
+      if (cleanUrl) URL.revokeObjectURL(cleanUrl);
+      setCleanUrl(URL.createObjectURL(result.blob));
+      toast.success("Metadados apagados e arquivo renomeado!");
 
       if (saved?.id) {
         setSavedId(saved.id);
@@ -136,6 +155,15 @@ export function VideoImportDialog({
       setStep("");
     }
   };
+
+  const downloadClean = () => {
+    if (!cleanUrl) return;
+    const a = document.createElement("a");
+    a.href = cleanUrl;
+    a.download = cleanName || "video.mp4";
+    a.click();
+  };
+
 
   const regenerate = (p: SocialPlatform) => {
     setPlatform(p);
@@ -272,10 +300,22 @@ export function VideoImportDialog({
           )}
 
           {savedId && (
-            <p className="text-sm font-medium text-primary">
-              Pronto! Escreva sua legenda abaixo para o {platformInfo(platform).label}.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-primary">
+                Pronto! Escreva sua legenda abaixo para o {platformInfo(platform).label}.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface/50 p-3">
+                <span className="min-w-[160px] flex-1 truncate text-xs text-muted-foreground">
+                  Novo nome do arquivo: <span className="font-mono">{cleanName}</span>
+                </span>
+                <Button size="sm" variant="outline" onClick={downloadClean} disabled={!cleanUrl}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar vídeo limpo
+                </Button>
+              </div>
+            </div>
           )}
+
 
           {savedId && (
             <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
