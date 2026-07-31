@@ -53,6 +53,8 @@ export function VideoImportDialog({
   const [platform, setPlatform] = useState<SocialPlatform>("shopee");
   const [caption, setCaption] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [cleanName, setCleanName] = useState("");
+  const [cleanUrl, setCleanUrl] = useState<string | null>(null);
 
   const reset = () => {
     setFile(null);
@@ -62,7 +64,11 @@ export function VideoImportDialog({
     setStep("");
     setCaption("");
     setSavedId(null);
+    setCleanName("");
+    if (cleanUrl) URL.revokeObjectURL(cleanUrl);
+    setCleanUrl(null);
   };
+
 
   const close = () => {
     if (busy) return;
