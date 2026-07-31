@@ -291,15 +291,16 @@ export function ProductFormDialog({
 
             <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
               <div className="min-w-[180px] flex-1">
-                <p className="text-sm font-medium">Importar foto do link</p>
+                <p className="text-sm font-medium">Puxar dados do link</p>
                 <p className="text-xs text-muted-foreground">
-                  Tenta baixar a foto oficial pelo link — pode falhar se a Shopee bloquear.
+                  Cole o link da Shopee acima: foto, nome, preço, comissão e link de afiliada
+                  entram sozinhos.
                 </p>
               </div>
               <Button
                 type="button"
                 variant="ghost"
-                onClick={runImport}
+                onClick={() => runImport()}
                 disabled={importMutation.isPending}
               >
                 {importMutation.isPending ? (
@@ -307,7 +308,7 @@ export function ProductFormDialog({
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-                Tentar pelo link
+                Puxar pelo link
               </Button>
             </div>
           </div>
