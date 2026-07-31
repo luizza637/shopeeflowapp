@@ -392,7 +392,7 @@ function VideosPage() {
                 busy={busy}
                 onCopyCaption={() => copyCaption(v)}
                 onPost={(p) => postTo(v, p)}
-                onKit={() => downloadKit(v)}
+                onKit={() => downloadVideo(v)}
                 onDelete={() => {
                   if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
                 }}
