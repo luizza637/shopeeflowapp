@@ -16,6 +16,7 @@ import {
   Wand2,
   ImageIcon,
   Video,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
