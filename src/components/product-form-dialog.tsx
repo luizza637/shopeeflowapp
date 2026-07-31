@@ -231,7 +231,8 @@ export function ProductFormDialog({
                 type="url"
                 value={form.url ?? ""}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
-                placeholder="https://shopee.com.br/..."
+                onPaste={(e) => onPasteLink(e, "url")}
+                placeholder="Cole o link e os dados vêm sozinhos"
               />
             </div>
             <div className="space-y-2">
@@ -241,6 +242,7 @@ export function ProductFormDialog({
                 type="url"
                 value={form.affiliate_url ?? ""}
                 onChange={(e) => setForm({ ...form, affiliate_url: e.target.value })}
+                onPaste={(e) => onPasteLink(e, "affiliate_url")}
                 placeholder="https://s.shopee.com.br/..."
               />
             </div>
