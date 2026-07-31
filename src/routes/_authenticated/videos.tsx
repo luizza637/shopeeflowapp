@@ -160,21 +160,23 @@ function VideosPage() {
     else window.open(info.uploadUrl, "_blank", "noopener,noreferrer");
   };
 
-  /** Kit de post: baixa vídeo + capa e copia a legenda com hashtags */
-  const downloadKit = async (v: any) => {
+  /** Baixa só o vídeo e copia a legenda salva com hashtags */
+  const downloadVideo = async (v: any) => {
     setBusy(true);
     try {
       const base = safeName(videoLabel(v));
       await downloadUrl(v.url, `${base}.mp4`);
-      if (v.thumbnail_url) await downloadUrl(v.thumbnail_url, `${base}-capa.jpg`);
-      const kit = buildCaption(platform, await postCopy({ data: { videoId: v.id } }));
-      await copyText(kit, "Kit pronto! Vídeo e capa baixados, legenda copiada.");
+      const text = v.caption
+        ? [v.caption, v.hashtags].filter(Boolean).join("\n\n")
+        : buildCaption(platform, await postCopy({ data: { videoId: v.id } }));
+      await copyText(text, "Vídeo baixado e legenda copiada!");
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao montar o kit");
+      toast.error(e?.message ?? "Erro ao baixar o vídeo");
     } finally {
       setBusy(false);
     }
   };
+
 
   const downloadSelected = async () => {
     const items = videos.filter((v: any) => selected.includes(v.id));
