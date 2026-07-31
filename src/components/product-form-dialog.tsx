@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Download, Upload } from "lucide-react";
 import { upsertProduct } from "@/lib/products.functions";
-import { importFromShopeeLink } from "@/lib/import-product.functions";
+import { lookupShopeeProduct } from "@/lib/shopee-import.functions";
 import { uploadProductPhoto } from "@/lib/images.functions";
 import { WebImageSearch } from "@/components/web-image-search";
 
