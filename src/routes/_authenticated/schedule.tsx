@@ -473,7 +473,17 @@ function NewScheduleDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Vídeo</Label>
-            <Select value={videoId} onValueChange={setVideoId}>
+            <Select
+              value={videoId}
+              onValueChange={(id) => {
+                setVideoId(id);
+                const v = videos.find((x: any) => x.id === id);
+                if (v) {
+                  setCaption(v.caption ?? "");
+                  setHashtags(v.hashtags ?? "");
+                }
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um vídeo" />
               </SelectTrigger>
@@ -485,7 +495,13 @@ function NewScheduleDialog({
                 ))}
               </SelectContent>
             </Select>
+            {videoId && (caption || hashtags) && (
+              <p className="text-xs text-muted-foreground">
+                Legenda e hashtags do vídeo já preenchidas abaixo — edite se quiser.
+              </p>
+            )}
           </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">

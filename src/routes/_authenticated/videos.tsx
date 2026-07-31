@@ -10,7 +10,7 @@ import {
   Sparkles,
   Play,
   Copy,
-  Package,
+  
   CheckSquare,
   Square,
   Upload,
@@ -160,21 +160,23 @@ function VideosPage() {
     else window.open(info.uploadUrl, "_blank", "noopener,noreferrer");
   };
 
-  /** Kit de post: baixa vídeo + capa e copia a legenda com hashtags */
-  const downloadKit = async (v: any) => {
+  /** Baixa só o vídeo e copia a legenda salva com hashtags */
+  const downloadVideo = async (v: any) => {
     setBusy(true);
     try {
       const base = safeName(videoLabel(v));
       await downloadUrl(v.url, `${base}.mp4`);
-      if (v.thumbnail_url) await downloadUrl(v.thumbnail_url, `${base}-capa.jpg`);
-      const kit = buildCaption(platform, await postCopy({ data: { videoId: v.id } }));
-      await copyText(kit, "Kit pronto! Vídeo e capa baixados, legenda copiada.");
+      const text = v.caption
+        ? [v.caption, v.hashtags].filter(Boolean).join("\n\n")
+        : buildCaption(platform, await postCopy({ data: { videoId: v.id } }));
+      await copyText(text, "Vídeo baixado e legenda copiada!");
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao montar o kit");
+      toast.error(e?.message ?? "Erro ao baixar o vídeo");
     } finally {
       setBusy(false);
     }
   };
+
 
   const downloadSelected = async () => {
     const items = videos.filter((v: any) => selected.includes(v.id));
@@ -390,7 +392,7 @@ function VideosPage() {
                 busy={busy}
                 onCopyCaption={() => copyCaption(v)}
                 onPost={(p) => postTo(v, p)}
-                onKit={() => downloadKit(v)}
+                onKit={() => downloadVideo(v)}
                 onDelete={() => {
                   if (confirm("Remover este vídeo?")) delMut.mutate(v.id);
                 }}
@@ -499,14 +501,21 @@ function VideoCard({
         <p className="line-clamp-2 text-sm font-medium">
           {video.title ?? video.products?.name ?? "Sem título"}
         </p>
+        {(video.caption || video.hashtags) && (
+          <div className="rounded-lg border border-border bg-surface/60 p-2">
+            <p className="line-clamp-3 whitespace-pre-line text-[11px] text-muted-foreground">
+              {[video.caption, video.hashtags].filter(Boolean).join("\n")}
+            </p>
+          </div>
+        )}
         <Button
           size="sm"
           disabled={busy}
           onClick={onKit}
           className="w-full bg-gradient-primary shadow-glow hover:opacity-90"
         >
-          <Package className="mr-2 h-4 w-4" />
-          Kit de post
+          <Download className="mr-2 h-4 w-4" />
+          Baixar vídeo + legenda
         </Button>
         <div className="grid grid-cols-3 gap-1">
           {SOCIAL_PLATFORMS.map((p) => (

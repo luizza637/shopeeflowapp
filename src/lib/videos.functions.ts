@@ -27,7 +27,9 @@ export const getPostCopy = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data: video, error } = await supabase
       .from("videos")
-      .select("id, title, product_id, generation_id, products(name, url, affiliate_url)")
+      .select(
+        "id, title, caption, hashtags, product_id, generation_id, products(name, url, affiliate_url)",
+      )
       .eq("id", data.videoId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -35,7 +37,13 @@ export const getPostCopy = createServerFn({ method: "GET" })
     if (!video) throw new Error("Vídeo não encontrado");
 
     let gen: { caption: string | null; hashtags: string | null } | null = null;
-    if (video.generation_id) {
+    if ((video as any).caption?.trim() || (video as any).hashtags?.trim()) {
+      gen = {
+        caption: (video as any).caption ?? null,
+        hashtags: (video as any).hashtags ?? null,
+      };
+    }
+    if (!gen && video.generation_id) {
       const { data: g } = await supabase
         .from("ai_generations")
         .select("caption, hashtags")
@@ -84,6 +92,8 @@ const SaveInput = z.object({
   mimeType: z.string().optional(),
   sizeBytes: z.number().optional(),
   thumbnailBase64: z.string().optional(),
+  caption: z.string().max(3000).optional(),
+  hashtags: z.string().max(1000).optional(),
 });
 
 function base64ToBytes(b64: string): Uint8Array {
@@ -135,6 +145,8 @@ export const saveVideoRecord = createServerFn({ method: "POST" })
         height: data.height ?? null,
         mime_type: data.mimeType ?? null,
         size_bytes: data.sizeBytes ?? null,
+        caption: data.caption?.trim() || null,
+        hashtags: data.hashtags?.trim() || null,
       })
       .select()
       .single();
@@ -163,6 +175,30 @@ export const deleteVideo = createServerFn({ method: "POST" })
     const { error } = await supabase
       .from("videos")
       .delete()
+      .eq("id", data.id)
+      .eq("user_id", userId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+const CaptionInput = z.object({
+  id: z.string().uuid(),
+  caption: z.string().max(3000).optional(),
+  hashtags: z.string().max(1000).optional(),
+});
+
+/** Salva/edita a legenda e as hashtags que acompanham o vídeo */
+export const updateVideoCaption = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CaptionInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("videos")
+      .update({
+        caption: data.caption?.trim() || null,
+        hashtags: data.hashtags?.trim() || null,
+      })
       .eq("id", data.id)
       .eq("user_id", userId);
     if (error) throw error;
