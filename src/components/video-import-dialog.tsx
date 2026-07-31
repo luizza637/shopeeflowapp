@@ -76,6 +76,17 @@ export function VideoImportDialog({
     onOpenChange(false);
   };
 
+  /** Nome novo e aleatório, com a data de hoje — como se o arquivo tivesse nascido agora. */
+  const freshName = (ext: string) => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(
+      d.getMinutes(),
+    )}${p(d.getSeconds())}`;
+    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `VID_${stamp}_${rand}.${ext}`;
+  };
+
   const handleImport = async () => {
     if (!file) {
       toast.error("Escolha um vídeo");
@@ -99,9 +110,8 @@ export function VideoImportDialog({
       if (!userId) throw new Error("Sessão expirada");
 
       const ext = result.mimeType.includes("webm") ? "webm" : "mp4";
-      const path = `${userId}/importados/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}.${ext}`;
+      const newName = freshName(ext);
+      const path = `${userId}/importados/${newName}`;
 
       const { error: upErr } = await supabase.storage
         .from("product-videos")
@@ -117,7 +127,7 @@ export function VideoImportDialog({
           title:
             title ||
             products.find((p) => p.id === productId)?.name ||
-            file.name.replace(/\.[^.]+$/, ""),
+            newName.replace(/\.[^.]+$/, ""),
           storagePath: path,
           durationSeconds: result.durationSeconds,
           width: result.width,
@@ -129,7 +139,10 @@ export function VideoImportDialog({
       });
 
       qc.invalidateQueries({ queryKey: ["videos"] });
-      toast.success("Vídeo salvo sem metadados e sem alterar o arquivo!");
+      setCleanName(newName);
+      if (cleanUrl) URL.revokeObjectURL(cleanUrl);
+      setCleanUrl(URL.createObjectURL(result.blob));
+      toast.success("Metadados apagados e arquivo renomeado!");
 
       if (saved?.id) {
         setSavedId(saved.id);
@@ -142,6 +155,15 @@ export function VideoImportDialog({
       setStep("");
     }
   };
+
+  const downloadClean = () => {
+    if (!cleanUrl) return;
+    const a = document.createElement("a");
+    a.href = cleanUrl;
+    a.download = cleanName || "video.mp4";
+    a.click();
+  };
+
 
   const regenerate = (p: SocialPlatform) => {
     setPlatform(p);
